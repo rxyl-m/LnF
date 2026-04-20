@@ -27,7 +27,7 @@ function applyTheme() {
 
     // Dynamically swap the image sources based on the theme
     document.querySelectorAll('.brand-logo').forEach(img => {
-        img.src = isLight ? 'lnflogo.jpg' : 'lnflogo.jpg';
+        img.src = isLight ? 'lnflogo.png' : 'lnflogo.png';
     });
 }
 

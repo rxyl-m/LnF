@@ -720,9 +720,9 @@ textarea { resize: vertical; min-height: 100px; }
 
 /* 1. Dynamic Logo Class */
 .brand-logo {
-  width: 36px; height: 36px;
+  width: 50px; height: 50px;
   border-radius: 8px;
-  object-fit: contain;
+  object-fit: cover;
 }
 .footer-brand .brand-logo { width: 22px; height: 22px; }
 .hero-eyebrow .brand-logo { width: 16px; height: 16px; margin-right: 7px; }
