@@ -332,6 +332,13 @@ async function dbSendMessage(sender, receiver, content) {
     }]);
     if (error) throw error;
 }
+async function dbDeleteMessages(userEmail1, userEmail2) {
+    const { error } = await supabaseClient
+        .from("messages")
+        .delete()
+        .or(`and(sender_email.eq.${userEmail1},receiver_email.eq.${userEmail2}),and(sender_email.eq.${userEmail2},receiver_email.eq.${userEmail1})`);
+    if (error) throw error;
+}
 function subscribeToMessages(currentUserEmail, onNewMessage) {
     supabaseClient
         .channel('chat-room')
@@ -1773,19 +1780,50 @@ async function renderResolutions() {
     listEl.innerHTML = loadingState("Loading meetings...");
     const user = getCurrentUser();
     let query = supabaseClient.from("resolutions").select("*").order("created_at", { ascending: false });
+    
     if (user && user.role !== "admin") {
         query = query.eq("user_email", user.email);
     }
+    
     const { data, error } = await query;
     if (error) { listEl.innerHTML = emptyState("Error loading logs."); return; }
-    listEl.innerHTML = data.length ? data.map(r => `
+    
+    listEl.innerHTML = data.length ? data.map(r => {
+        // Build the chat history transcript if it exists
+        let chatLogHtml = "";
+        if (r.chat_history && Array.isArray(r.chat_history) && r.chat_history.length > 0) {
+            const msgs = r.chat_history.map(msg => {
+                const isAdmin = msg.sender_email === "admin@admin.com";
+                return `
+                    <div style="margin-bottom: 6px; font-size: 0.82rem; line-height: 1.4;">
+                        <strong style="color: ${isAdmin ? 'var(--accent)' : 'var(--text-primary)'}">${isAdmin ? 'Admin' : 'Member'}:</strong>
+                        <span style="color: var(--text-secondary)">${esc(msg.content)}</span>
+                    </div>`;
+            }).join("");
+
+            // Wrap it in a collapsible <details> tag
+            chatLogHtml = `
+                <details style="margin-top: 14px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+                    <summary style="cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--text-primary); outline: none; user-select: none;">
+                        <i class="ph ph-chat-text"></i> View Chat Transcript
+                    </summary>
+                    <div style="margin-top: 10px; max-height: 150px; overflow-y: auto; padding-top: 8px; border-top: 1px solid var(--border);">
+                        ${msgs}
+                    </div>
+                </details>
+            `;
+        }
+
+        return `
         <article class="card item-card">
             <div class="item-header">
                 <span class="tag tag-approved"><i class="ph ph-handshake"></i> ${esc(r.action_type)}</span>
                 <span style="font-size:0.8rem;color:var(--text-secondary);">${esc(r.meeting_date)} at ${esc(r.meeting_time)}</span>
             </div>
             <h3>Meeting with: ${esc(r.user_email)}</h3>
-            <p><strong>Location:</strong> ${esc(r.location)}</p>
+            <p style="font-size: 0.85rem;"><strong>Location:</strong> ${esc(r.location)}</p>
+            ${chatLogHtml}
         </article>
-    `).join("") : emptyState("No meeting resolutions logged yet.");
+        `;
+    }).join("") : emptyState("No meeting resolutions logged yet.");
 }
