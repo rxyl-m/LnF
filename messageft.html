@@ -168,7 +168,9 @@ function renderBubble(content, isMe) {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// 4. Load History & Real-time Messages
+// 4. Load History, Real-time Messages & Typing Indicator
+let chatChannel; // Declare globally so the input can talk to it
+
 async function initChat() {
     const history = await dbGetMessages(user.email, targetEmail);
     chatBox.innerHTML = '<div id="typingIndicator" style="padding: 0 20px 5px; font-size: 0.75rem; color: var(--text-secondary); font-style: italic; min-height: 15px;"></div>';
@@ -177,8 +179,12 @@ async function initChat() {
         renderBubble(msg.content, msg.sender_email === user.email);
     });
 
-    supabaseClient
-        .channel('chat-room')
+    // Combine DB listening and Typing indicator into ONE reliable channel
+    chatChannel = supabaseClient.channel('chat-room', {
+        config: { broadcast: { ack: false } } // CRITICAL: Enables typing indicators
+    });
+
+    chatChannel
         .on('postgres_changes', { 
             event: 'INSERT', 
             schema: 'public', 
@@ -193,53 +199,55 @@ async function initChat() {
             if (isParticipant) {
                 const isMe = newMsg.sender_email === user.email;
                 
-                // IMPORTANT FIX: Only use the database listener to show the OTHER person's messages.
-                // We handle our own messages instantly when we click "Send".
-                if (!isMe) {
-                    renderBubble(newMsg.content, false);
+                // MULTI-DEVICE SYNC FIX: 
+                // Check what the very last bubble currently on the screen says
+                const allBubbles = chatBox.getElementsByClassName('bubble');
+                const lastBubble = allBubbles.length > 0 ? allBubbles[allBubbles.length - 1] : null;
+
+                // If it's from the OTHER person, OR if I sent it from my OTHER device (so it's not on this screen yet)
+                if (!isMe || !lastBubble || lastBubble.textContent !== newMsg.content) {
+                    renderBubble(newMsg.content, isMe);
                 }
+            }
+        })
+        .on('broadcast', { event: 'typing' }, payload => {
+            // TYPING INDICATOR FIX: Listen on the exact same connection
+            const indicator = document.getElementById('typingIndicator');
+            if (payload.payload.email === targetEmail && indicator) {
+                indicator.textContent = payload.payload.isTyping ? `${targetName} is typing...` : '';
             }
         })
         .subscribe();
 }
 
-// 5. Send Message
+// 5. Send Message (Instant feel)
 document.getElementById('chatForm').onsubmit = async (e) => {
     e.preventDefault();
     const input = document.getElementById('chatMsgInput');
     const content = input.value.trim();
     if (!content) return;
 
-    // INSTANT VISUAL FEEDBACK - Renders locally immediately
-    renderBubble(content, true);
-
+    renderBubble(content, true); // Instantly pop up on current device
     input.value = ""; 
     await dbSendMessage(user.email, targetEmail, content);
 };
 
-// 6. Typing Indicator Logic (Outside any IF blocks so both can use it)
-const typingChannel = supabaseClient.channel('typing-indicator');
-
-typingChannel
-    .on('broadcast', { event: 'typing' }, (payload) => {
-        const indicator = document.getElementById('typingIndicator');
-        if (payload.payload.email === targetEmail && indicator) {
-            indicator.textContent = payload.payload.isTyping ? `${targetName} is typing...` : '';
-        }
-    })
-    .subscribe();
-
+// 6. Send Typing Event
 let typingTimeout;
 document.getElementById('chatMsgInput').addEventListener('input', () => {
-    typingChannel.send({
+    if (!chatChannel) return; // Don't crash if channel is still loading
+
+    // Tell the channel we are typing
+    chatChannel.send({
         type: 'broadcast',
         event: 'typing',
         payload: { email: user.email, isTyping: true },
     });
 
+    // Clear indicator after 2 seconds of stopping
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
-        typingChannel.send({
+        chatChannel.send({
             type: 'broadcast',
             event: 'typing',
             payload: { email: user.email, isTyping: false },
