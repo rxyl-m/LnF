@@ -192,7 +192,12 @@ async function initChat() {
 
             if (isParticipant) {
                 const isMe = newMsg.sender_email === user.email;
-                renderBubble(newMsg.content, isMe);
+                
+                // IMPORTANT FIX: Only use the database listener to show the OTHER person's messages.
+                // We handle our own messages instantly when we click "Send".
+                if (!isMe) {
+                    renderBubble(newMsg.content, false);
+                }
             }
         })
         .subscribe();
@@ -204,6 +209,10 @@ document.getElementById('chatForm').onsubmit = async (e) => {
     const input = document.getElementById('chatMsgInput');
     const content = input.value.trim();
     if (!content) return;
+
+    // INSTANT VISUAL FEEDBACK - Renders locally immediately
+    renderBubble(content, true);
+
     input.value = ""; 
     await dbSendMessage(user.email, targetEmail, content);
 };

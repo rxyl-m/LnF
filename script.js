@@ -278,7 +278,8 @@ async function dbInsertClaim(claim) {
         category: claim.category, item_type: claim.itemType,
         description: claim.description, location: claim.location,
         date: claim.date, contact: claim.contact,
-        requested_by: claim.requestedBy, status: "pending"
+        requested_by: claim.requestedBy, status: "pending",
+        image_url: claim.imageUrl // <--- ADD THIS LINE!
     }]);
     if (error) throw error;
 }
@@ -524,6 +525,12 @@ function renderRequestCard(request, actionsHtml = "") {
     </article>`;
 }
 function renderClaimCard(claim, actionsHtml = "") {
+    // Check if there is an image to show
+    const imgHtml = claim.imageUrl ? 
+        `<div style="margin: 10px 0; border-radius: var(--radius); overflow: hidden; height: 180px; background: var(--bg-surface);">
+            <img src="${esc(claim.imageUrl)}" alt="${esc(claim.name)}" style="width: 100%; height: 100%; object-fit: cover;">
+         </div>` : '';
+
     return `
     <article class="card item-card">
         <div class="item-header">
@@ -531,7 +538,7 @@ function renderClaimCard(claim, actionsHtml = "") {
             ${itemTypeTag(claim.itemType)}
             ${statusTag(claim.status)}
         </div>
-        <h3>${esc(claim.name)}</h3>
+        ${imgHtml} <h3>${esc(claim.name)}</h3>
         <p>${esc(claim.description)}</p>
         <dl>
             <div><dt>Location</dt><dd>${esc(claim.location)}</dd></div>
@@ -854,7 +861,8 @@ async function handleClaim(itemId, user) {
                     name: item.name, category: item.category, itemType: item.itemType,
                     description: item.description, location: item.location,
                     date: item.date, contact: item.contact,
-                    requestedBy: user.email, status: "pending"
+                    requestedBy: user.email, status: "pending",
+                    imageUrl: item.imageUrl // <--- ADD THIS LINE!
                 });
                 logActivity("claim_request", `${user.email} requested claim on "${item.name}"`);
                 addNotification(`Your claim for "${item.name}" has been submitted!`, 'info');
