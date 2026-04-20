@@ -174,10 +174,20 @@ async function initChat() {
 
     supabaseClient
         .channel('chat-room')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'messages' 
+        }, payload => {
             const newMsg = payload.new;
-            if (newMsg.sender_email === targetEmail && newMsg.receiver_email === user.email) {
-                renderBubble(newMsg.content, false);
+
+            const isParticipant = 
+                (newMsg.sender_email === user.email && newMsg.receiver_email === targetEmail) || 
+                (newMsg.sender_email === targetEmail && newMsg.receiver_email === user.email);
+
+            if (isParticipant) {
+                const isMe = newMsg.sender_email === user.email;
+                renderBubble(newMsg.content, isMe);
             }
         })
         .subscribe();
@@ -189,9 +199,7 @@ document.getElementById('chatForm').onsubmit = async (e) => {
     const input = document.getElementById('chatMsgInput');
     const content = input.value.trim();
     if (!content) return;
-
-    renderBubble(content, true);
-    input.value = "";
+    input.value = ""; 
     await dbSendMessage(user.email, targetEmail, content);
 };
 
