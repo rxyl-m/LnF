@@ -15,6 +15,27 @@
         .bubble.member { align-self: flex-start; background: var(--bg-raised); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
         .chat-input-area { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--bg-raised); }
         .chat-input-area input { flex: 1; border-radius: var(--radius-full); }
+        .bubble {
+    /* ... existing styles ... */
+    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    word-wrap: break-word;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Add a "last seen" or timestamp under bubbles for extra realism */
+        .bubble::after {
+            content: attr(data-time);
+            display: block;
+            font-size: 0.6rem;
+            margin-top: 4px;
+            opacity: 0.7;
+            text-align: right;
+        }
     </style>
 </head>
 <body class="page">
@@ -41,6 +62,7 @@
         </div>
         
         <div class="chat-box" id="chatBox">
+            <div id="typingIndicator" style="padding: 0 20px 5px; font-size: 0.75rem; color: var(--text-secondary); font-style: italic; min-height: 15px;"></div>
             </div>
 
         <form class="chat-input-area" id="chatForm">
@@ -123,6 +145,7 @@
 
     // 4. Load History & Listen Live
     async function initChat() {
+        // 1. Load History
         const history = await dbGetMessages(user.email, targetEmail);
         chatBox.innerHTML = "";
         history.forEach(msg => {
@@ -130,14 +153,24 @@
             renderBubble(msg.content, isMe);
         });
 
-        subscribeToMessages(user.email, (newMsg) => {
-            // If the incoming message is from the person we are talking to, show it on the left
-            if (newMsg.sender_email === targetEmail) {
-                renderBubble(newMsg.content, false);
-            }
-        });
+        // 2. Listen Live for NEW messages
+        const channel = supabaseClient
+            .channel('chat-room')
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'messages' 
+            }, payload => {
+                const newMsg = payload.new;
+                // Only render if the message belongs to THIS conversation
+                const isFromTarget = newMsg.sender_email === targetEmail && newMsg.receiver_email === user.email;
+                if (isFromTarget) {
+                    renderBubble(newMsg.content, false);
+                    // Optional: Play a subtle sound or vibrate here
+                }
+            })
+            .subscribe();
     }
-    initChat();
 
     // 5. Send Message
     document.getElementById('chatForm').onsubmit = async (e) => {
@@ -187,6 +220,39 @@
                 window.location.href = "adminpage.html";
             }, 2000);
         };
+
+        const typingIndicator = document.getElementById('typingIndicator');
+const typingChannel = supabaseClient.channel('typing-indicator');
+
+// Listen for typing events
+typingChannel
+    .on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload.email === targetEmail) {
+            typingIndicator.textContent = payload.payload.isTyping ? `${targetName} is typing...` : '';
+        }
+    })
+    .subscribe();
+
+        // Send typing event
+        let typingTimeout;
+        document.getElementById('chatMsgInput').addEventListener('input', () => {
+            // Send "is typing"
+            typingChannel.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: { email: user.email, isTyping: true },
+            });
+
+            // Clear indicator after 2 seconds of no typing
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                typingChannel.send({
+                    type: 'broadcast',
+                    event: 'typing',
+                    payload: { email: user.email, isTyping: false },
+                });
+            }, 2000);
+        });
     }
 </script>
 </body>
