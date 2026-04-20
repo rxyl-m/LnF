@@ -749,7 +749,6 @@ function initLogin() {
    MEMBER PAGE
    ════════════════════════════════════════════════════════ */
 let _memberCatFilter = "all";
-startRealtimeNotifications(user, false);
 
 async function initMemberPage() {
     applyTheme();
