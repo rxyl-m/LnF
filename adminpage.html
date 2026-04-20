@@ -11,8 +11,8 @@
 <body class="page page-admin" data-page="admin">
 
 <!-- Dark / Light Toggle -->
-<button id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle theme">
-  <i class="ph ph-moon" id="themeIcon"></i>
+<button class="floating-theme-btn theme-toggle-btn" title="Toggle dark/light mode" aria-label="Toggle theme">
+  <i class="ph ph-moon theme-icon"></i>
 </button>
 
 <div class="app-shell">
@@ -21,18 +21,11 @@
   <!-- Mobile Header -->
   <div class="mobile-header">
     <div class="brand-panel" style="margin-bottom:0;padding:0;">
-      <svg class="brand-hex" viewBox="0 0 80 80" fill="none">
-        <path d="M40 4L72 22V58L40 76L8 58V22Z" fill="rgba(77,130,255,0.12)" stroke="rgba(77,130,255,0.4)" stroke-width="1.5"/>
-        <path d="M40 12L64 26V54L40 68L16 54V26Z" fill="white" opacity="0.92"/>
-        <rect x="35" y="22" width="10" height="7" rx="1.5" fill="#05063a"/>
-        <path d="M40 34L40 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round"/>
-        <path d="M29 54L40 34L51 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <path d="M34 47L46 47" stroke="#05063a" stroke-width="3.5" stroke-linecap="round"/>
-      </svg>
-      <div>
+    <img src="logo-dark.jpg" class="brand-logo" alt="iAcademy Logo">
+    <div>
         <p class="brand-title">Lost &amp; Found</p>
         <span class="brand-subtitle">iAcademy · Admin</span>
-      </div>
+    </div>
     </div>
     <button class="icon-button" id="mobileMenuBtn" aria-label="Toggle Menu">
       <i class="ph ph-list" id="menuIcon"></i>
@@ -42,18 +35,11 @@
   <!-- Sidebar -->
   <aside class="sidebar" id="appSidebar">
     <div class="brand-panel desktop-brand">
-      <svg class="brand-hex" viewBox="0 0 80 80" fill="none">
-        <path d="M40 4L72 22V58L40 76L8 58V22Z" fill="rgba(77,130,255,0.12)" stroke="rgba(77,130,255,0.4)" stroke-width="1.5"/>
-        <path d="M40 12L64 26V54L40 68L16 54V26Z" fill="white" opacity="0.92"/>
-        <rect x="35" y="22" width="10" height="7" rx="1.5" fill="#05063a"/>
-        <path d="M40 34L40 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round"/>
-        <path d="M29 54L40 34L51 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <path d="M34 47L46 47" stroke="#05063a" stroke-width="3.5" stroke-linecap="round"/>
-      </svg>
-      <div>
-        <p class="brand-title">Lost &amp; Found</p>
-        <span class="brand-subtitle">iAcademy · Admin</span>
-      </div>
+        <img src="logo-dark.jpg" class="brand-logo" alt="iAcademy Logo">
+        <div>
+            <p class="brand-title">Lost &amp; Found</p>
+            <span class="brand-subtitle">iAcademy · Admin</span>
+        </div>
     </div>
 
     <nav class="sidebar-nav">
@@ -80,6 +66,9 @@
     </nav>
 
     <div class="sidebar-footer">
+        <button class="button secondary fullwidth theme-toggle-btn" style="margin-bottom: 12px;">
+            <i class="ph ph-moon theme-icon"></i> <span style="margin-left:5px;">Toggle Theme</span>
+        </button>
       <div class="profile-card">
         <div class="profile-info">
           <div class="profile-avatar" id="adminAvatarText">SA</div>

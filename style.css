@@ -412,8 +412,6 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 select option { background: var(--bg-raised); color: var(--text-primary); }
 textarea { resize: vertical; min-height: 100px; }
 .form-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
-.hint { margin-top: 14px; padding: 10px 14px; background: rgba(77,130,255,0.07); border: 1px solid rgba(77,130,255,0.18); border-radius: var(--radius); font-size: 0.79rem; color: var(--text-secondary); }
-.hint strong { color: var(--accent-light); }
 .error-message { color: #fca5a5; font-size: 0.82rem; margin-top: 10px; padding: 9px 12px; background: var(--red-glow); border: 1px solid rgba(225,29,72,0.22); border-radius: var(--radius); }
 .success-message { color: #6ee7b7; font-size: 0.82rem; margin-top: 10px; padding: 9px 12px; background: rgba(13,148,136,0.09); border: 1px solid rgba(13,148,136,0.22); border-radius: var(--radius); }
 
@@ -718,3 +716,53 @@ textarea { resize: vertical; min-height: 100px; }
 .toast i { font-size: 1.2rem; }
 @keyframes toastEnter { from{opacity:0;transform:translateY(30px) scale(0.9)} to{opacity:1;transform:translateY(0) scale(1)} }
 @keyframes toastLeave { from{opacity:1;transform:translateY(0) scale(1)} to{opacity:0;transform:translateY(15px) scale(0.95)} }
+
+
+/* 1. Dynamic Logo Class */
+.brand-logo {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+.footer-brand .brand-logo { width: 22px; height: 22px; }
+.hero-eyebrow .brand-logo { width: 16px; height: 16px; margin-right: 7px; }
+
+/* 2. Responsive Theme Toggle Button */
+.floating-theme-btn {
+  display: none; /* Hidden on desktop, moved to sidebar */
+  position: fixed; bottom: 90px; right: 28px; z-index: 300;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--bg-surface); border: 1px solid var(--border-strong);
+  color: var(--text-secondary); font-size: 1.1rem;
+  align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: var(--shadow);
+  transition: all var(--tr);
+}
+.floating-theme-btn:hover { color: var(--accent); border-color: var(--accent); transform: scale(1.08); }
+
+@media (max-width: 1100px) {
+  .floating-theme-btn { display: flex; } /* Show floating button on mobile/tablet */
+}
+
+/* 3. Updated FAB Button (Bigger & Mobile Centered) */
+.fab-main {
+  width: 64px; height: 64px; /* Increased from 54px */
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--iac-bright), var(--iac-blue));
+  border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 22px rgba(26,36,200,0.5); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease; color: white;
+}
+.fab-main:hover { box-shadow: 0 8px 28px rgba(43,92,230,0.65); }
+.fab-main.open { transform: rotate(45deg); }
+
+@media (max-width: 720px) {
+  .fab-container {
+    bottom: 30px; /* Added margin from the bottom */
+    right: 50%;
+    transform: translateX(50%); /* Centers the FAB perfectly */
+    align-items: center;
+  }
+  .fab-options {
+    align-items: center; /* Centers the pill options above the main button */
+  }
+}

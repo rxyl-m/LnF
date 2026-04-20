@@ -30,9 +30,14 @@
                 <h2 style="font-size: 1.1rem; font-family: var(--font-display);" id="chatUserName">Loading User...</h2>
                 <p style="font-size: 0.75rem; color: var(--text-secondary);" id="chatUserEmail"></p>
             </div>
-            <button class="button outline sm" onclick="document.getElementById('resolutionModal').classList.remove('hidden')">
-                <i class="ph ph-handshake"></i> Confirm Resolution
-            </button>
+            <div style="display: flex; gap: 8px;">
+                <button class="button secondary sm theme-toggle-btn" title="Toggle Theme">
+                    <i class="ph ph-moon theme-icon"></i>
+                </button>
+                <button class="button outline sm" onclick="document.getElementById('resolutionModal').classList.remove('hidden')">
+                    <i class="ph ph-handshake"></i> Confirm Resolution
+                </button>
+            </div>
         </div>
         
         <div class="chat-box" id="chatBox">
@@ -96,8 +101,14 @@
     // Hide the "Confirm Resolution" button if a member is looking at this page
     if (!isAdmin) {
         document.querySelector('.chat-header .button').style.display = 'none';
+        
+        // SECURITY CHECK: If they type the URL manually but have no approved chat, kick them out!
+        supabaseClient.from('chat_requests').select('*').eq('user_email', user.email).eq('status', 'approved').then(({data}) => {
+            if (!data || data.length === 0) {
+                window.location.href = "memberpage.html";
+            }
+        });
     }
-
     const chatBox = document.getElementById("chatBox");
 
     // 3. Render Bubbles correctly (My texts on the right, their texts on the left)
@@ -140,22 +151,37 @@
         await dbSendMessage(user.email, targetEmail, content);
     };
 
-    // 6. Handle Admin Resolution (Only admins can trigger this)
+    // 6. Handle Admin Resolution (Archive Chat & Clear Room)
     const resForm = document.getElementById('resolutionForm');
     if (resForm) {
         resForm.onsubmit = async (e) => {
             e.preventDefault();
+            
+            // 1. Grab the current chat history BEFORE deleting it
+            const history = await dbGetMessages(user.email, targetEmail);
+            
+            // 2. Package it into the resolution
             const res = {
                 user_email: targetEmail,
                 action_type: document.getElementById('resAction').value,
                 meeting_date: document.getElementById('resDate').value,
                 meeting_time: document.getElementById('resTime').value,
-                location: document.getElementById('resLocation').value
+                location: document.getElementById('resLocation').value,
+                chat_history: history // Save the array to the database
             };
-            await supabaseClient.from('resolutions').insert([res]);
-            showToast("Resolution logged to Recent Conversations!", "success");
             
-            // Wait 2 seconds so the admin can see the success toast before redirecting
+            // 3. Save the resolution
+            await supabaseClient.from('resolutions').insert([res]);
+            
+            // 4. Wipe the active chat room
+            await dbDeleteMessages(user.email, targetEmail);
+            
+            // 5. Lock the door (Mark the chat request as resolved)
+            await supabaseClient.from('chat_requests').update({ status: 'resolved' }).eq('user_email', targetEmail).eq('status', 'approved');
+            
+            showToast("Resolution logged and chat archived!", "success");
+            
+            // 6. Redirect after a short delay
             setTimeout(() => {
                 window.location.href = "adminpage.html";
             }, 2000);

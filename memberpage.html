@@ -10,12 +10,13 @@
     <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body class="page page-member" data-page="member">
+<button class="floating-theme-btn theme-toggle-btn" title="Toggle dark/light mode"><i class="ph ph-moon theme-icon"></i></button>
 <div class="app-shell">
 <div class="layout">
 
     <div class="mobile-header">
         <div class="brand-panel" style="margin-bottom:0; padding:0;">
-            <div class="brand-mark">Å</div>
+            <img src="logo-dark.jpg" class="brand-logo" alt="iAcademy Logo">
             <div>
                 <p class="brand-title">Lost &amp; Found</p>
                 <span class="brand-subtitle">iAcademy</span>
@@ -28,7 +29,7 @@
 
     <aside class="sidebar" id="appSidebar">
         <div class="brand-panel desktop-brand">
-            <div class="brand-mark">Å</div>
+            <img src="logo-dark.jpg" class="brand-logo" alt="iAcademy Logo">
             <div>
                 <p class="brand-title">Lost &amp; Found</p>
                 <span class="brand-subtitle">iAcademy</span>
@@ -46,7 +47,7 @@
             <a class="nav-link" data-section="requests" href="#">
                 <span class="nav-link-icon"><i class="ph ph-file-text"></i></span> My Requests
             </a>
-            <a class="nav-link" href="messageft.html">
+            <a class="nav-link hidden" id="activeChatLink" href="messageft.html">
                 <span class="nav-link-icon"><i class="ph ph-chat-circle-dots"></i></span> Active Chat
             </a>
             <a class="nav-link" data-section="conversations" href="#">
@@ -55,6 +56,9 @@
         </nav>
         
         <div class="sidebar-footer">
+            <button class="button secondary fullwidth theme-toggle-btn" style="margin-bottom: 12px;">
+                <i class="ph ph-moon theme-icon"></i> <span style="margin-left:5px;">Toggle Theme</span>
+            </button>
             <div class="profile-card">
                 <div class="profile-info">
                     <div class="profile-avatar" id="memberAvatar">M</div>

@@ -13,25 +13,34 @@ const STORAGE_THEME    = "lf_theme";
 const STORAGE_NOTIFS   = "lf_notifications";
 
 /* ════════════════════════════════════════════════════════
-   THEME (dark / light)
+   THEME (dark / light / logo swap)
    ════════════════════════════════════════════════════════ */
 function applyTheme() {
     const saved = localStorage.getItem(STORAGE_THEME) || 'dark';
-    document.body.classList.toggle('light-mode', saved === 'light');
-    const icon = document.getElementById('themeIcon');
-    if (icon) icon.className = saved === 'light' ? 'ph ph-sun' : 'ph ph-moon';
+    const isLight = saved === 'light';
+    document.body.classList.toggle('light-mode', isLight);
+    
+    // Update all theme icons across the UI
+    document.querySelectorAll('.theme-icon').forEach(icon => {
+        icon.className = isLight ? 'ph ph-sun theme-icon' : 'ph ph-moon theme-icon';
+    });
+
+    // Dynamically swap the image sources based on the theme
+    document.querySelectorAll('.brand-logo').forEach(img => {
+        img.src = isLight ? 'lnflogo.jpg' : 'lnflogo.jpg';
+    });
 }
 
 function setupThemeToggle() {
-    const btn = document.getElementById('themeToggle');
-    if (!btn) return;
-    applyTheme();
-    btn.onclick = () => {
-        const isLight = document.body.classList.toggle('light-mode');
-        localStorage.setItem(STORAGE_THEME, isLight ? 'light' : 'dark');
-        const icon = document.getElementById('themeIcon');
-        if (icon) icon.className = isLight ? 'ph ph-sun' : 'ph ph-moon';
-    };
+    applyTheme(); // Always apply on load, fixing messageft.html bug
+
+    document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+        btn.onclick = () => {
+            const isLight = document.body.classList.toggle('light-mode');
+            localStorage.setItem(STORAGE_THEME, isLight ? 'light' : 'dark');
+            applyTheme();
+        };
+    });
 }
 
 /* ════════════════════════════════════════════════════════
@@ -664,6 +673,30 @@ async function initMemberPage() {
     const user = ensureLogin("member");
     if (!user) return;
 
+    // --- NEW: Active Chat Visibility Logic ---
+    try {
+        // 1. Check if there is an approved request
+        const { data: requests } = await supabaseClient
+            .from('chat_requests')
+            .select('*')
+            .eq('user_email', user.email)
+            .eq('status', 'approved');
+            
+        // 2. Check if an admin directly messaged the user
+        const messages = await dbGetMessages(user.email, "admin@admin.com");
+
+        const chatLink = document.getElementById("activeChatLink");
+        if (chatLink) {
+            // Show ONLY if there is an approved request OR an active message history
+            if ((requests && requests.length > 0) || (messages && messages.length > 0)) {
+                chatLink.classList.remove("hidden");
+            } else {
+                chatLink.classList.add("hidden");
+            }
+        }
+    } catch (e) { console.error("Error checking chat:", e); }
+    // -----------------------------------------
+
     const nameEl   = document.getElementById("memberName");
     const avatarEl = document.getElementById("memberAvatar");
     if (nameEl)   nameEl.textContent   = user.name;
@@ -676,6 +709,8 @@ async function initMemberPage() {
             switchMemberSection(link.dataset.section);
         });
     });
+
+    // ... (Keep the rest of your existing initMemberPage code here) ...
 
     document.querySelectorAll("#catFilter .cat-pill").forEach(pill => {
         pill.addEventListener("click", () => {

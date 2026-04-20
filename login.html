@@ -11,8 +11,8 @@
 <body class="page page-login" data-page="login">
 
 <!-- Dark / Light Toggle -->
-<button id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle theme">
-  <i class="ph ph-moon" id="themeIcon"></i>
+<button class="floating-theme-btn theme-toggle-btn" title="Toggle dark/light mode" aria-label="Toggle theme">
+  <i class="ph ph-moon theme-icon"></i>
 </button>
 
 <div class="app-shell auth-shell">
@@ -57,22 +57,11 @@
         </button>
         <a class="button secondary" href="index.html">Back</a>
       </div>
-      <div class="hint">
-        Admin credentials: <strong>admin@admin.com</strong> / <strong>admin123</strong>
-      </div>
       <p id="loginError" aria-live="polite"></p>
     </form>
 
     <!-- Sign Up Form -->
     <form id="signupForm" class="form-card auth-form hidden" data-form="signup">
-
-      <!-- ⚠️ Password Requirements Banner — shown immediately -->
-      <div class="pw-warning-banner">
-        <i class="ph ph-warning"></i>
-        <div>
-          <strong>Password requirements:</strong> minimum 8 characters, must include an uppercase letter, a number, and a special character (e.g. <code>!@#$%</code>).
-        </div>
-      </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <label style="margin-bottom:0;">
@@ -217,18 +206,6 @@
 <script src="supabase.js"></script>
 <script src="script.js"></script>
 <script>
-  /* ── Dark / Light Mode ── */
-  (function() {
-    const saved = localStorage.getItem('lf_theme') || 'dark';
-    if (saved === 'light') document.body.classList.add('light-mode');
-    document.getElementById('themeIcon').className = saved === 'light' ? 'ph ph-sun' : 'ph ph-moon';
-  })();
-
-  document.getElementById('themeToggle').onclick = () => {
-    const isLight = document.body.classList.toggle('light-mode');
-    localStorage.setItem('lf_theme', isLight ? 'light' : 'dark');
-    document.getElementById('themeIcon').className = isLight ? 'ph ph-sun' : 'ph ph-moon';
-  };
 
   /* ── Terms Modal ── */
   function openTerms() {
