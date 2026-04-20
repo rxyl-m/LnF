@@ -19,21 +19,16 @@ function applyTheme() {
     const saved = localStorage.getItem(STORAGE_THEME) || 'dark';
     const isLight = saved === 'light';
     document.body.classList.toggle('light-mode', isLight);
-    
-    // Update all theme icons across the UI
     document.querySelectorAll('.theme-icon').forEach(icon => {
         icon.className = isLight ? 'ph ph-sun theme-icon' : 'ph ph-moon theme-icon';
     });
-
-    // Dynamically swap the image sources based on the theme
     document.querySelectorAll('.brand-logo').forEach(img => {
         img.src = isLight ? 'lnflogo.png' : 'lnflogo.png';
     });
 }
 
 function setupThemeToggle() {
-    applyTheme(); // Always apply on load, fixing messageft.html bug
-
+    applyTheme();
     document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
         btn.onclick = () => {
             const isLight = document.body.classList.toggle('light-mode');
@@ -194,8 +189,69 @@ function injectTTSButtons() {
 }
 
 /* ════════════════════════════════════════════════════════
-   DB NORMALIZERS
+   IMAGE LIGHTBOX
    ════════════════════════════════════════════════════════ */
+function showImageLightbox(url, alt) {
+    // Inject keyframe if not already present
+    if (!document.getElementById('lightbox-style')) {
+        const style = document.createElement('style');
+        style.id = 'lightbox-style';
+        style.textContent = `
+            @keyframes lbFadeIn { from { opacity:0; } to { opacity:1; } }
+            @keyframes lbZoomIn { from { opacity:0; transform:scale(0.88); } to { opacity:1; transform:scale(1); } }
+            .lb-overlay { animation: lbFadeIn 0.2s ease; }
+            .lb-img-wrap { animation: lbZoomIn 0.22s cubic-bezier(0.175,0.885,0.32,1.275); }
+            .lb-close-btn:hover { background: var(--accent, #6366f1) !important; border-color: var(--accent, #6366f1) !important; transform: scale(1.1); }
+        `;
+        document.head.appendChild(style);
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'lb-overlay';
+    overlay.style.cssText = `
+        position: fixed; inset: 0; z-index: 9999;
+        background: rgba(0,0,0,0.88);
+        display: flex; align-items: center; justify-content: center;
+        cursor: zoom-out; padding: 20px; box-sizing: border-box;
+    `;
+
+    overlay.innerHTML = `
+        <div class="lb-img-wrap" style="position:relative; max-width:90vw; max-height:90vh; cursor:default;" onclick="event.stopPropagation()">
+            <img src="${url}" alt="${alt}"
+                 style="max-width:88vw; max-height:82vh; border-radius:12px;
+                        box-shadow:0 24px 80px rgba(0,0,0,0.7);
+                        object-fit:contain; display:block;">
+            <button class="lb-close-btn"
+                    style="position:absolute; top:-14px; right:-14px;
+                           width:36px; height:36px; border-radius:50%;
+                           background:var(--bg-raised,#1e1e2e);
+                           border:2px solid var(--border,rgba(255,255,255,0.15));
+                           color:var(--text-primary,white); font-size:1rem;
+                           cursor:pointer; display:flex; align-items:center;
+                           justify-content:center; transition:all 0.15s ease;
+                           box-shadow:0 4px 12px rgba(0,0,0,0.4);"
+                    onclick="document.querySelector('.lb-overlay').remove()"
+                    title="Close">
+                <i class="ph ph-x"></i>
+            </button>
+            <div style="margin-top:10px; text-align:center;
+                        font-size:0.8rem; color:rgba(255,255,255,0.5);
+                        font-family:var(--font-body,sans-serif);">
+                ${alt} &nbsp;·&nbsp; Click outside to close
+            </div>
+        </div>`;
+
+    overlay.onclick = () => overlay.remove();
+
+    // Close on Escape key
+    const escHandler = (e) => {
+        if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    document.body.appendChild(overlay);
+}
+
 /* ════════════════════════════════════════════════════════
    DB NORMALIZERS
    ════════════════════════════════════════════════════════ */
@@ -217,7 +273,7 @@ async function dbInsertItem(item) {
         id: item.id, name: item.name, category: item.category, item_type: item.itemType,
         description: item.description, location: item.location, date: item.date,
         contact: item.contact, status: "Approved",
-        image_url: item.imageUrl // <--- ADD THIS LINE
+        image_url: item.imageUrl
     }]);
     if (error) throw error;
 }
@@ -253,7 +309,7 @@ async function dbInsertRequest(req) {
         id: req.id, name: req.name, category: req.category, item_type: req.itemType,
         description: req.description, location: req.location, date: req.date,
         contact: req.contact, requested_by: req.requestedBy, status: "pending",
-        image_url: req.image_url // ADD THIS
+        image_url: req.image_url
     }]);
     if (error) throw error;
 }
@@ -279,7 +335,7 @@ async function dbInsertClaim(claim) {
         description: claim.description, location: claim.location,
         date: claim.date, contact: claim.contact,
         requested_by: claim.requestedBy, status: "pending",
-        image_url: claim.imageUrl // <--- ADD THIS LINE!
+        image_url: claim.imageUrl
     }]);
     if (error) throw error;
 }
@@ -339,10 +395,8 @@ async function dbSendMessage(sender, receiver, content) {
     if (error) throw error;
 }
 async function dbDeleteMessages(userEmail1, userEmail2) {
-    // Safely delete messages in both directions using explicit matching
     const { error: err1 } = await supabaseClient.from("messages").delete().match({ sender_email: userEmail1, receiver_email: userEmail2 });
     if (err1) throw err1;
-    
     const { error: err2 } = await supabaseClient.from("messages").delete().match({ sender_email: userEmail2, receiver_email: userEmail1 });
     if (err2) throw err2;
 }
@@ -474,15 +528,22 @@ function showConfirm(title, message, confirmText, isDanger, onConfirm) {
 }
 
 /* ════════════════════════════════════════════════════════
-   CARD RENDERERS
+   CARD RENDERERS  (images are clickable → lightbox)
    ════════════════════════════════════════════════════════ */
-function renderItemCard(item, actionsHtml = "") {
-    // If the item has an image, render an <img> tag, otherwise render nothing
-    const imgHtml = item.imageUrl ? 
-        `<div style="margin: 10px 0; border-radius: var(--radius); overflow: hidden; height: 180px; background: var(--bg-surface);">
-            <img src="${esc(item.imageUrl)}" alt="${esc(item.name)}" style="width: 100%; height: 100%; object-fit: cover;">
-         </div>` : '';
+function _buildImgHtml(imageUrl, name) {
+    if (!imageUrl) return '';
+    return `
+    <div class="card-img-thumb"
+         onclick="showImageLightbox('${imageUrl.replace(/'/g,"\\'")}','${esc(name).replace(/'/g,"\\'")}')">
+        <img src="${esc(imageUrl)}" alt="${esc(name)}">
+        <div class="card-img-overlay">
+            <i class="ph ph-magnifying-glass-plus"></i>
+            <span>View Image</span>
+        </div>
+    </div>`;
+}
 
+function renderItemCard(item, actionsHtml = "") {
     return `
     <article class="card item-card" data-item-type="${esc(item.itemType||"")}" data-name="${esc((item.name||"").toLowerCase())}">
         <div class="item-header">
@@ -490,7 +551,8 @@ function renderItemCard(item, actionsHtml = "") {
             ${itemTypeTag(item.itemType)}
             ${statusTag(item.status || "Approved")}
         </div>
-        ${imgHtml} <h3>${esc(item.name)}</h3>
+        ${_buildImgHtml(item.imageUrl, item.name)}
+        <h3>${esc(item.name)}</h3>
         <p>${esc(item.description)}</p>
         <dl>
             <div><dt>Location</dt><dd>${esc(item.location)}</dd></div>
@@ -500,13 +562,8 @@ function renderItemCard(item, actionsHtml = "") {
         ${actionsHtml}
     </article>`;
 }
-function renderRequestCard(request, actionsHtml = "") {
-    // If the request has an image, render an <img> tag, otherwise render nothing
-    const imgHtml = request.imageUrl ? 
-        `<div style="margin: 10px 0; border-radius: var(--radius); overflow: hidden; height: 180px; background: var(--bg-surface);">
-            <img src="${esc(request.imageUrl)}" alt="${esc(request.name)}" style="width: 100%; height: 100%; object-fit: cover;">
-         </div>` : '';
 
+function renderRequestCard(request, actionsHtml = "") {
     return `
     <article class="card item-card" data-item-type="${esc(request.itemType||"")}" data-name="${esc((request.name||"").toLowerCase())}">
         <div class="item-header">
@@ -514,7 +571,8 @@ function renderRequestCard(request, actionsHtml = "") {
             ${itemTypeTag(request.itemType)}
             ${statusTag(request.status || "Approved")}
         </div>
-        ${imgHtml} <h3>${esc(request.name)}</h3>
+        ${_buildImgHtml(request.imageUrl, request.name)}
+        <h3>${esc(request.name)}</h3>
         <p>${esc(request.description)}</p>
         <dl>
             <div><dt>Location</dt><dd>${esc(request.location)}</dd></div>
@@ -524,13 +582,8 @@ function renderRequestCard(request, actionsHtml = "") {
         ${actionsHtml}
     </article>`;
 }
-function renderClaimCard(claim, actionsHtml = "") {
-    // Check if there is an image to show
-    const imgHtml = claim.imageUrl ? 
-        `<div style="margin: 10px 0; border-radius: var(--radius); overflow: hidden; height: 180px; background: var(--bg-surface);">
-            <img src="${esc(claim.imageUrl)}" alt="${esc(claim.name)}" style="width: 100%; height: 100%; object-fit: cover;">
-         </div>` : '';
 
+function renderClaimCard(claim, actionsHtml = "") {
     return `
     <article class="card item-card">
         <div class="item-header">
@@ -538,7 +591,8 @@ function renderClaimCard(claim, actionsHtml = "") {
             ${itemTypeTag(claim.itemType)}
             ${statusTag(claim.status)}
         </div>
-        ${imgHtml} <h3>${esc(claim.name)}</h3>
+        ${_buildImgHtml(claim.imageUrl, claim.name)}
+        <h3>${esc(claim.name)}</h3>
         <p>${esc(claim.description)}</p>
         <dl>
             <div><dt>Location</dt><dd>${esc(claim.location)}</dd></div>
@@ -608,7 +662,6 @@ function initLogin() {
         });
     });
 
-    /* ── Sign In ── */
     document.getElementById("loginForm")?.addEventListener("submit", async e => {
         e.preventDefault();
         const errorEl   = document.getElementById("loginError");
@@ -618,7 +671,6 @@ function initLogin() {
         if (errorEl) { errorEl.textContent = ""; errorEl.className = ""; }
         if (!email || !password) { showMsg(errorEl, "Please enter email and password.", "error"); return; }
 
-        // Hard-coded admin bypass
         if (email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
             setCurrentUser({ email, name: "System Admin", role: "admin" });
             logActivity("login", "Admin signed in");
@@ -645,7 +697,6 @@ function initLogin() {
         }
     });
 
-    /* ── Sign Up ── */
     document.getElementById("signupForm")?.addEventListener("submit", async e => {
         e.preventDefault();
         const errEl     = document.getElementById("signupError");
@@ -704,23 +755,16 @@ async function initMemberPage() {
     const user = ensureLogin("member");
     if (!user) return;
 
-    // --- NEW: Active Chat Visibility Logic ---
     async function updateChatLinkVisibility(user) {
         const chatLink = document.getElementById("activeChatLink");
         if (!chatLink) return;
-
         try {
-            // 1. Check for approved chat requests
             const { data: requests } = await supabaseClient
                 .from('chat_requests')
                 .select('status')
                 .eq('user_email', user.email)
                 .eq('status', 'approved');
-
-            // 2. Check for ANY message history with admin
             const messages = await dbGetMessages(user.email, "admin@admin.com");
-
-            // Show if there is an approved request OR existing messages
             if ((requests && requests.length > 0) || (messages && messages.length > 0)) {
                 chatLink.classList.remove("hidden");
             } else {
@@ -731,7 +775,6 @@ async function initMemberPage() {
         }
     }
     updateChatLinkVisibility(user);
-    // -----------------------------------------
 
     const nameEl   = document.getElementById("memberName");
     const avatarEl = document.getElementById("memberAvatar");
@@ -745,8 +788,6 @@ async function initMemberPage() {
             switchMemberSection(link.dataset.section);
         });
     });
-
-    // ... (Keep the rest of your existing initMemberPage code here) ...
 
     document.querySelectorAll("#catFilter .cat-pill").forEach(pill => {
         pill.addEventListener("click", () => {
@@ -862,7 +903,7 @@ async function handleClaim(itemId, user) {
                     description: item.description, location: item.location,
                     date: item.date, contact: item.contact,
                     requestedBy: user.email, status: "pending",
-                    imageUrl: item.imageUrl // <--- ADD THIS LINE!
+                    imageUrl: item.imageUrl
                 });
                 logActivity("claim_request", `${user.email} requested claim on "${item.name}"`);
                 addNotification(`Your claim for "${item.name}" has been submitted!`, 'info');
@@ -1029,10 +1070,8 @@ function initRequestForm() {
         const location    = document.getElementById("location").value.trim();
         const dateFound   = document.getElementById("dateFound").value;
         const contactInfo = document.getElementById("contactInfo").value.trim();
-        
-        // Get the file
-        const fileInput = document.getElementById("itemImage");
-        const file = fileInput ? fileInput.files[0] : null;
+        const fileInput   = document.getElementById("itemImage");
+        const file        = fileInput ? fileInput.files[0] : null;
 
         if (!itemName || !description || !location || !dateFound || !contactInfo) {
             showMsg(msgEl, "Please complete every text field before submitting.", "error"); return;
@@ -1041,49 +1080,30 @@ function initRequestForm() {
         showConfirm("Submit Request", `Submit this ${category} item request?`, "Submit", false, async () => {
             const submitBtn = form.querySelector("button[type=submit]");
             if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Uploading & Submitting…"; }
-            
             try {
                 let imageUrl = null;
-
-                // 1. Upload the image if one was selected
                 if (file) {
-                    const fileExt = file.name.split('.').pop();
+                    const fileExt  = file.name.split('.').pop();
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
                     const filePath = `${user.email}/${fileName}`;
-
-                    // Upload to Supabase Storage
-                    const { error: uploadError } = await supabaseClient.storage
-                        .from('item-images')
-                        .upload(filePath, file);
-
+                    const { error: uploadError } = await supabaseClient.storage.from('item-images').upload(filePath, file);
                     if (uploadError) throw uploadError;
-
-                    // Get the public URL
-                    const { data: publicUrlData } = supabaseClient.storage
-                        .from('item-images')
-                        .getPublicUrl(filePath);
-
+                    const { data: publicUrlData } = supabaseClient.storage.from('item-images').getPublicUrl(filePath);
                     imageUrl = publicUrlData.publicUrl;
                 }
-
-                // 2. Insert into database (make sure to update dbInsertRequest to accept image_url)
                 await dbInsertRequest({
                     id: `req-${Date.now()}`,
                     name: itemName, category, itemType, description, location,
                     date: dateFound, contact: contactInfo,
                     requestedBy: user.email, status: "pending",
-                    image_url: imageUrl // NEW FIELD
+                    image_url: imageUrl
                 });
-
                 logActivity("post_request", `${user.email} submitted a ${category} request for "${itemName}"`);
                 showMsg(msgEl, "Request submitted! An admin will review it shortly.", "success");
-                
-                // Reset form
                 isFormDirty = false;
                 form.reset();
                 document.querySelectorAll(".type-tile").forEach(t  => t.classList.remove("active"));
                 document.querySelectorAll(".type-choice").forEach(b => b.classList.remove("active-lost","active-found"));
-                
             } catch (err) {
                 showMsg(msgEl, "Could not submit request. Please try again.", "error");
                 console.error(err);
@@ -1103,7 +1123,6 @@ function initAdminPage() {
     if (!user) return;
     document.getElementById("logoutBtn").onclick = logout;
 
-    // Update admin avatar/name
     const avatar = document.getElementById("adminAvatarText");
     const name   = document.getElementById("adminNameText");
     if (avatar) avatar.textContent = (user.name || "SA").slice(0,2).toUpperCase();
@@ -1134,7 +1153,6 @@ function switchAdminSection(section) {
     renders[section]?.();
 }
 
-/* ── Dashboard ── */
 async function renderAdminDashboard() {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set("statTotal","…"); set("statPendingClaims","…"); set("statFoundItems","…"); set("statMembers","…");
@@ -1206,7 +1224,6 @@ async function renderAdminDashboard() {
     }
 }
 
-/* ── Manage Items ── */
 let _itemFilter  = "all";
 let _isEditDirty = false;
 let _cachedItems = [];
@@ -1330,7 +1347,6 @@ async function deleteItem(id) {
     });
 }
 
-/* ── Claims ── */
 let _claimsFilter = "all";
 
 async function renderClaimsSection() {
@@ -1377,7 +1393,6 @@ async function renderClaimsSection() {
     }
 }
 
-/* ── Users ── (with Admin Power Granting) */
 async function renderUsersSection() {
     const countEl  = document.getElementById("usersCountLabel");
     const listEl   = document.getElementById("usersList");
@@ -1434,10 +1449,9 @@ async function renderUsersSection() {
                 </article>`;
             }).join("");
 
-            /* Grant Admin */
             listEl.querySelectorAll(".grant-admin-btn").forEach(btn =>
                 btn.addEventListener("click", () => {
-                    showConfirm("Grant Admin Powers", `Give admin privileges to ${btn.dataset.name}? They will be able to approve posts, manage items, and moderate claims.`, "Grant Admin", false, async () => {
+                    showConfirm("Grant Admin Powers", `Give admin privileges to ${btn.dataset.name}?`, "Grant Admin", false, async () => {
                         try {
                             await dbUpdateUserRole(btn.dataset.email, "admin");
                             logActivity("admin_granted", `Admin powers granted to ${btn.dataset.name} (${btn.dataset.email})`);
@@ -1451,8 +1465,6 @@ async function renderUsersSection() {
                     });
                 })
             );
-
-            /* Revoke Admin */
             listEl.querySelectorAll(".revoke-admin-btn").forEach(btn =>
                 btn.addEventListener("click", () => {
                     showConfirm("Revoke Admin Powers", `Remove admin privileges from ${btn.dataset.name}?`, "Revoke", true, async () => {
@@ -1468,8 +1480,6 @@ async function renderUsersSection() {
                     });
                 })
             );
-
-            /* Remove User */
             listEl.querySelectorAll(".remove-user-btn").forEach(btn =>
                 btn.addEventListener("click", () => {
                     showConfirm("Remove Member", `Permanently remove ${btn.dataset.name}?`, "Remove", true, async () => {
@@ -1492,7 +1502,6 @@ async function renderUsersSection() {
     }
 }
 
-/* ── Activity Log ── */
 function renderActivityLog() {
     const log     = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_ACTIVITY)) ?? []; } catch { return []; } })();
     const countEl = document.getElementById("activityCountLabel");
@@ -1525,7 +1534,6 @@ function renderActivityLog() {
     }
 }
 
-/* ── Admin Modals ── */
 function openRequestModal(pendingReq, pendingClaims, pendingChats, modal, allRequests, allClaims) {
     modal.classList.remove("hidden"); modal.setAttribute("aria-hidden", "false");
     const postEl  = document.getElementById("modalPostRequests");
@@ -1615,7 +1623,7 @@ async function processRequest(id, action, cachedRequests = null) {
                     name: req.name, category: req.category, itemType: req.itemType,
                     description: req.description, location: req.location,
                     date: req.date, contact: req.contact,
-                    imageUrl: req.imageUrl // <--- ADD THIS LINE
+                    imageUrl: req.imageUrl
                 });
                 logActivity("post_approved", `"${req.name}" by ${req.requestedBy} was approved`);
                 addNotification(`Post request for "${req.name}" approved.`, 'info');
@@ -1725,53 +1733,50 @@ function initAdminRequestForm() {
         const dateFound   = document.getElementById("dateFound").value;
         const contactInfo = document.getElementById("contactInfo").value.trim();
         
-        // Get the file
-        const fileInput = document.getElementById("itemImage");
-        const file = fileInput ? fileInput.files[0] : null;
+        // Grab the file if the admin uploaded one
+        const fileInput   = document.getElementById("itemImage");
+        const file        = fileInput ? fileInput.files[0] : null;
 
         if (!itemName || !description || !location || !dateFound || !contactInfo) {
             showMsg(msgEl, "Please complete every text field before submitting.", "error"); return;
         }
 
-        showConfirm("Submit Request", `Submit this ${category} item request?`, "Submit", false, async () => {
+        showConfirm("Post Item Directly", `Post this ${category} item directly to the active board?`, "Post Item", false, async () => {
             const submitBtn = form.querySelector("button[type=submit]");
-            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Uploading & Submitting…"; }
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Uploading & Posting…"; }
             
             try {
                 let imageUrl = null;
 
-                // 1. Upload the image if one was selected
+                // 1. Upload the image to Supabase if it exists
                 if (file) {
-                    const fileExt = file.name.split('.').pop();
+                    const fileExt  = file.name.split('.').pop();
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
                     const filePath = `${user.email}/${fileName}`;
 
-                    // Upload to Supabase Storage
-                    const { error: uploadError } = await supabaseClient.storage
-                        .from('item-images')
-                        .upload(filePath, file);
-
+                    const { error: uploadError } = await supabaseClient.storage.from('item-images').upload(filePath, file);
                     if (uploadError) throw uploadError;
 
-                    // Get the public URL
-                    const { data: publicUrlData } = supabaseClient.storage
-                        .from('item-images')
-                        .getPublicUrl(filePath);
-
+                    const { data: publicUrlData } = supabaseClient.storage.from('item-images').getPublicUrl(filePath);
                     imageUrl = publicUrlData.publicUrl;
                 }
 
-                // 2. Insert into database (make sure to update dbInsertRequest to accept image_url)
-                await dbInsertRequest({
-                    id: `req-${Date.now()}`,
-                    name: itemName, category, itemType, description, location,
-                    date: dateFound, contact: contactInfo,
-                    requestedBy: user.email, status: "pending",
-                    image_url: imageUrl // NEW FIELD
+                // 2. Bypass requests table! Save DIRECTLY to items table
+                await dbInsertItem({
+                    id: `item-${Date.now()}`,
+                    name: itemName, 
+                    category: category, 
+                    itemType: itemType, 
+                    description: description, 
+                    location: location,
+                    date: dateFound, 
+                    contact: contactInfo,
+                    imageUrl: imageUrl 
                 });
 
-                logActivity("post_request", `${user.email} submitted a ${category} request for "${itemName}"`);
-                showMsg(msgEl, "Request submitted! An admin will review it shortly.", "success");
+                logActivity("post_approved", `Admin directly posted "${itemName}"`);
+                showMsg(msgEl, "Item posted to the board successfully!", "success");
+                showToast("Item is now live!");
                 
                 // Reset form
                 isFormDirty = false;
@@ -1780,10 +1785,13 @@ function initAdminRequestForm() {
                 document.querySelectorAll(".type-choice").forEach(b => b.classList.remove("active-lost","active-found"));
                 
             } catch (err) {
-                showMsg(msgEl, "Could not submit request. Please try again.", "error");
+                showMsg(msgEl, "Could not post item. Please try again.", "error");
                 console.error(err);
             } finally {
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit Request"; }
+                if (submitBtn) { 
+                    submitBtn.disabled = false; 
+                    submitBtn.innerHTML = "<i class='ph ph-paper-plane-tilt'></i> Post Item"; 
+                }
             }
         });
     });
@@ -1891,7 +1899,6 @@ async function renderResolutions() {
     if (error) { listEl.innerHTML = emptyState("Error loading logs."); return; }
     
     listEl.innerHTML = data.length ? data.map(r => {
-        // Build the chat history transcript if it exists
         let chatLogHtml = "";
         if (r.chat_history && Array.isArray(r.chat_history) && r.chat_history.length > 0) {
             const msgs = r.chat_history.map(msg => {
@@ -1903,7 +1910,6 @@ async function renderResolutions() {
                     </div>`;
             }).join("");
 
-            // Wrap it in a collapsible <details> tag
             chatLogHtml = `
                 <details style="margin-top: 14px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
                     <summary style="cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--text-primary); outline: none; user-select: none;">
