@@ -1,22 +1,41 @@
 ﻿/* =========================================================
-   Lost & Found — script.js  (Supabase Edition)
-
-   IMPORTANT — Run these in Supabase SQL Editor before using:
-   ─────────────────────────────────────────────────────────
-   ALTER TABLE users    ADD COLUMN IF NOT EXISTS password text;
-   ALTER TABLE items    ADD COLUMN IF NOT EXISTS item_type text;
-   ALTER TABLE requests ADD COLUMN IF NOT EXISTS item_type text;
-   ALTER TABLE claims   ADD COLUMN IF NOT EXISTS item_type text;
-   ─────────────────────────────────────────────────────────
+   iAcademy Lost & Found — script.js  (Merged & Upgraded)
+   Features: Admin power granting, strong password policy,
+             text-to-voice, notifications, dark/light mode,
+             terms acceptance, admin approval workflow
    ========================================================= */
 
 const ADMIN_EMAIL      = "admin@admin.com";
 const ADMIN_PASSWORD   = "admin123";
-const STORAGE_USER     = "lf_user";       // session only — stays in localStorage
-const STORAGE_ACTIVITY = "lf_activity";   // activity log — local only
+const STORAGE_USER     = "lf_user";
+const STORAGE_ACTIVITY = "lf_activity";
+const STORAGE_THEME    = "lf_theme";
+const STORAGE_NOTIFS   = "lf_notifications";
 
 /* ════════════════════════════════════════════════════════
-   SESSION  (localStorage — keeps user logged in across pages)
+   THEME (dark / light)
+   ════════════════════════════════════════════════════════ */
+function applyTheme() {
+    const saved = localStorage.getItem(STORAGE_THEME) || 'dark';
+    document.body.classList.toggle('light-mode', saved === 'light');
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.className = saved === 'light' ? 'ph ph-sun' : 'ph ph-moon';
+}
+
+function setupThemeToggle() {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    applyTheme();
+    btn.onclick = () => {
+        const isLight = document.body.classList.toggle('light-mode');
+        localStorage.setItem(STORAGE_THEME, isLight ? 'light' : 'dark');
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.className = isLight ? 'ph ph-sun' : 'ph ph-moon';
+    };
+}
+
+/* ════════════════════════════════════════════════════════
+   SESSION
    ════════════════════════════════════════════════════════ */
 function getCurrentUser() {
     try { return JSON.parse(localStorage.getItem(STORAGE_USER)) ?? null; }
@@ -42,7 +61,131 @@ function logout() {
 }
 
 /* ════════════════════════════════════════════════════════
-   DB NORMALIZERS  (Supabase snake_case → JS camelCase)
+   PASSWORD VALIDATION
+   ════════════════════════════════════════════════════════ */
+function isStrongPassword(pw) {
+    return pw.length >= 8 &&
+           /[A-Z]/.test(pw) &&
+           /[0-9]/.test(pw) &&
+           /[^A-Za-z0-9]/.test(pw);
+}
+
+/* ════════════════════════════════════════════════════════
+   NOTIFICATIONS (localStorage-based)
+   ════════════════════════════════════════════════════════ */
+function getNotifications() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_NOTIFS)) || []; }
+    catch { return []; }
+}
+function addNotification(text, type = 'info') {
+    const notifs = getNotifications();
+    notifs.unshift({ id: `n-${Date.now()}`, text, type, read: false, time: new Date().toISOString() });
+    localStorage.setItem(STORAGE_NOTIFS, JSON.stringify(notifs.slice(0, 50)));
+}
+function markAllRead() {
+    const notifs = getNotifications().map(n => ({ ...n, read: true }));
+    localStorage.setItem(STORAGE_NOTIFS, JSON.stringify(notifs));
+}
+function renderNotifDropdown() {
+    const notifs    = getNotifications();
+    const unread    = notifs.filter(n => !n.read).length;
+    const countEl   = document.getElementById('notificationCount');
+    if (countEl) countEl.textContent = unread;
+
+    let dropdown = document.getElementById('notifDropdown');
+    if (!dropdown) {
+        dropdown = document.createElement('div');
+        dropdown.id = 'notifDropdown';
+        dropdown.className = 'notif-dropdown hidden';
+        document.querySelector('.notif-bell-wrap')?.appendChild(dropdown);
+    }
+
+    dropdown.innerHTML = `
+        <div class="notif-header">
+            Notifications
+            <button class="button sm secondary" onclick="markAllRead(); renderNotifDropdown();">
+                Mark all read
+            </button>
+        </div>
+        <div class="notif-list">
+            ${notifs.length ? notifs.map(n => `
+                <div class="notif-item ${n.read ? '' : 'unread'}">
+                    ${n.read ? '' : '<div class="notif-dot"></div>'}
+                    <div>
+                        <div class="notif-text">${esc(n.text)}</div>
+                        <div class="notif-time">${new Date(n.time).toLocaleString()}</div>
+                    </div>
+                </div>`).join('') :
+            '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.82rem;">No notifications yet.</div>'}
+        </div>`;
+}
+
+function setupNotifBell() {
+    const bell = document.getElementById('notificationBell');
+    if (!bell) return;
+    renderNotifDropdown();
+
+    bell.onclick = (e) => {
+        e.stopPropagation();
+        const dd = document.getElementById('notifDropdown');
+        if (!dd) return;
+        const isHidden = dd.classList.contains('hidden');
+        dd.classList.toggle('hidden', !isHidden);
+        if (isHidden) { markAllRead(); renderNotifDropdown(); }
+    };
+    document.addEventListener('click', () => {
+        document.getElementById('notifDropdown')?.classList.add('hidden');
+    });
+}
+
+/* ════════════════════════════════════════════════════════
+   TEXT-TO-SPEECH
+   ════════════════════════════════════════════════════════ */
+let _ttsUtterance = null;
+function speakText(text, btn) {
+    if (!('speechSynthesis' in window)) {
+        showToast('Text-to-speech not supported in this browser.', 'error'); return;
+    }
+    window.speechSynthesis.cancel();
+    if (btn?.classList.contains('speaking')) {
+        btn.classList.remove('speaking');
+        btn.innerHTML = '<i class="ph ph-speaker-high"></i> Read aloud';
+        return;
+    }
+    document.querySelectorAll('.tts-btn').forEach(b => {
+        b.classList.remove('speaking');
+        b.innerHTML = '<i class="ph ph-speaker-high"></i> Read aloud';
+    });
+    _ttsUtterance = new SpeechSynthesisUtterance(text);
+    _ttsUtterance.rate  = 0.95;
+    _ttsUtterance.pitch = 1;
+    _ttsUtterance.onend = () => {
+        btn?.classList.remove('speaking');
+        if (btn) btn.innerHTML = '<i class="ph ph-speaker-high"></i> Read aloud';
+    };
+    window.speechSynthesis.speak(_ttsUtterance);
+    btn?.classList.add('speaking');
+    if (btn) btn.innerHTML = '<i class="ph ph-stop-circle"></i> Stop';
+}
+
+function injectTTSButtons() {
+    document.querySelectorAll('.item-card:not(.tts-injected)').forEach(card => {
+        card.classList.add('tts-injected');
+        const text = card.querySelector('h3')?.textContent + '. ' +
+                     (card.querySelector('p')?.textContent || '') + '. ' +
+                     (card.querySelector('dl')?.textContent || '');
+        const btn = document.createElement('button');
+        btn.className = 'tts-btn';
+        btn.innerHTML = '<i class="ph ph-speaker-high"></i> Read aloud';
+        btn.type = 'button';
+        btn.onclick = () => speakText(text.replace(/\s+/g,' ').trim(), btn);
+        const header = card.querySelector('.item-header');
+        if (header) header.appendChild(btn);
+    });
+}
+
+/* ════════════════════════════════════════════════════════
+   DB NORMALIZERS
    ════════════════════════════════════════════════════════ */
 const toItem    = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, status:r.status });
 const toRequest = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, requestedBy:r.requested_by, status:r.status });
@@ -146,10 +289,9 @@ async function dbGetUserByEmail(email) {
 }
 async function dbInsertUser(user) {
     const { error } = await supabaseClient.from("users").insert([{
-        // We removed 'id: user.id' here so Supabase can auto-generate the UUID
         email: user.email.toLowerCase(),
-        name: user.name, 
-        role: "member", 
+        name: user.name,
+        role: user.role || "member",
         password: user.password
     }]);
     if (error) throw error;
@@ -158,41 +300,34 @@ async function dbDeleteUser(email) {
     const { error } = await supabaseClient.from("users").delete().eq("email", email.toLowerCase());
     if (error) throw error;
 }
+async function dbUpdateUserRole(email, role) {
+    const { error } = await supabaseClient.from("users").update({ role }).eq("email", email.toLowerCase());
+    if (error) throw error;
+}
 
 /* ════════════════════════════════════════════════════════
    DB: MESSAGES (CHAT)
    ════════════════════════════════════════════════════════ */
-
-// 1. Fetch the chat history between two specific people
 async function dbGetMessages(userEmail1, userEmail2) {
     const { data, error } = await supabaseClient
         .from("messages")
         .select("*")
-        // Get messages where user1 is sender & user2 is receiver, OR vice versa
         .or(`and(sender_email.eq.${userEmail1},receiver_email.eq.${userEmail2}),and(sender_email.eq.${userEmail2},receiver_email.eq.${userEmail1})`)
-        .order("created_at", { ascending: true }); // Oldest to newest
+        .order("created_at", { ascending: true });
     if (error) throw error;
     return data || [];
 }
-
-// 2. Send a new message
 async function dbSendMessage(sender, receiver, content) {
     const { error } = await supabaseClient.from("messages").insert([{
-        sender_email: sender, 
-        receiver_email: receiver, 
-        content: content
+        sender_email: sender, receiver_email: receiver, content: content
     }]);
     if (error) throw error;
 }
-
-// 3. The Realtime Listener
 function subscribeToMessages(currentUserEmail, onNewMessage) {
-    // Listen for any new row added to the messages table
     supabaseClient
         .channel('chat-room')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
             const newMsg = payload.new;
-            // Only trigger the UI update if this message involves the logged-in user
             if (newMsg.sender_email === currentUserEmail || newMsg.receiver_email === currentUserEmail) {
                 onNewMessage(newMsg);
             }
@@ -210,7 +345,7 @@ async function dbUpdateChatRequestStatus(id, status) {
 }
 
 /* ════════════════════════════════════════════════════════
-   ACTIVITY LOG  (localStorage — per-device, admin only)
+   ACTIVITY LOG
    ════════════════════════════════════════════════════════ */
 const ACTIVITY_ICONS = {
     signup:           "<i class='ph ph-user-plus'></i>",
@@ -224,6 +359,8 @@ const ACTIVITY_ICONS = {
     item_edited:      "<i class='ph ph-pencil-simple'></i>",
     item_deleted:     "<i class='ph ph-trash'></i>",
     activity_cleared: "<i class='ph ph-broom'></i>",
+    admin_granted:    "<i class='ph ph-shield-star'></i>",
+    admin_revoked:    "<i class='ph ph-shield-slash'></i>",
 };
 function logActivity(type, detail) {
     try {
@@ -261,38 +398,29 @@ function itemTypeTag(itemType) {
     return `<span class="tag tag-type">${esc(itemType)}</span>`;
 }
 function emptyState(msg) { return `<div class="empty-state">${esc(msg)}</div>`; }
-function loadingState(msg = "Loading…") { return `<div class="empty-state" style="opacity:.6;">${esc(msg)}</div>`; }
+function loadingState(msg = "Loading…") { return `<div class="empty-state loading" style="opacity:.6;">${esc(msg)}</div>`; }
 function showMsg(el, msg, type) {
     if (!el) return;
     el.textContent = msg;
     el.className   = type === "error" ? "error-message" : "success-message";
 }
+
 /* ════════════════════════════════════════════════════════
-   TOAST NOTIFICATIONS
+   TOAST
    ════════════════════════════════════════════════════════ */
 function showToast(message, type = "success") {
-    // Check if container exists; if not, create it dynamically
     let container = document.getElementById("toastContainer");
     if (!container) {
         container = document.createElement("div");
         container.id = "toastContainer";
         document.body.appendChild(container);
     }
-    
-    // Create the toast
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
-    
-    // Add the icon and message
     const icon = type === "error" ? "<i class='ph ph-warning-circle'></i>" : "<i class='ph ph-check-circle'></i>";
     toast.innerHTML = `${icon} <span>${esc(message)}</span>`;
-    
     container.appendChild(toast);
-    
-    // Auto-remove the toast after the CSS animation finishes (3.9 seconds)
-    setTimeout(() => {
-        if (toast.parentElement) toast.remove();
-    }, 3900);
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 3900);
 }
 
 /* ════════════════════════════════════════════════════════
@@ -383,7 +511,7 @@ function renderClaimCard(claim, actionsHtml = "") {
 }
 
 /* ════════════════════════════════════════════════════════
-   FAB — Floating Action Button
+   FAB
    ════════════════════════════════════════════════════════ */
 function toggleFab() {
     const opts = document.getElementById("fabOptions");
@@ -406,6 +534,7 @@ document.addEventListener("click", e => {
    LOGIN / SIGN UP
    ════════════════════════════════════════════════════════ */
 function initLogin() {
+    applyTheme();
     let isLoginDirty = false;
     document.getElementById("loginForm")?.addEventListener("input",  () => isLoginDirty = true);
     document.getElementById("signupForm")?.addEventListener("input", () => isLoginDirty = true);
@@ -439,7 +568,7 @@ function initLogin() {
         });
     });
 
-    /* ── Sign In ─────────────────────────── */
+    /* ── Sign In ── */
     document.getElementById("loginForm")?.addEventListener("submit", async e => {
         e.preventDefault();
         const errorEl   = document.getElementById("loginError");
@@ -457,26 +586,26 @@ function initLogin() {
             return;
         }
 
-        submitBtn.disabled    = true;
-        submitBtn.textContent = "Signing in…";
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "<i class='ph ph-circle-notch'></i> Signing in…";
         try {
             const found = await dbGetUserByEmail(email);
-            if (!found)                    { showMsg(errorEl, "No account found with that email. Please sign up first.", "error"); return; }
+            if (!found)                     { showMsg(errorEl, "No account found with that email. Please sign up first.", "error"); return; }
             if (found.password !== password) { showMsg(errorEl, "Incorrect password.", "error"); return; }
             isLoginDirty = false;
-            setCurrentUser({ email: found.email, name: found.name, role: "member" });
+            setCurrentUser({ email: found.email, name: found.name, role: found.role || "member" });
             logActivity("login", `${found.name} signed in`);
-            window.location.href = "memberpage.html";
+            window.location.href = found.role === "admin" ? "adminpage.html" : "memberpage.html";
         } catch (err) {
             showMsg(errorEl, "Could not connect. Please try again.", "error");
             console.error(err);
         } finally {
-            submitBtn.disabled    = false;
-            submitBtn.textContent = "Sign In";
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = "<i class='ph ph-sign-in'></i> Sign In";
         }
     });
 
-    /* ── Sign Up ─────────────────────────── */
+    /* ── Sign Up ── */
     document.getElementById("signupForm")?.addEventListener("submit", async e => {
         e.preventDefault();
         const errEl     = document.getElementById("signupError");
@@ -490,22 +619,23 @@ function initLogin() {
         const email     = document.getElementById("signupEmail").value.trim();
         const password  = document.getElementById("signupPassword").value;
         const confirm   = document.getElementById("signupConfirm").value;
+        const termsOk   = document.getElementById("termsCheck")?.checked;
 
         if (!firstName||!lastName||!email||!password||!confirm) { showMsg(errEl,"Please fill in all fields.","error"); return; }
-        if (password.length < 6)   { showMsg(errEl, "Password must be at least 6 characters.", "error"); return; }
+        if (!isStrongPassword(password)) { showMsg(errEl,"Password must be at least 8 characters and include an uppercase letter, a number, and a special character.","error"); return; }
         if (password !== confirm)  { showMsg(errEl, "Passwords do not match.", "error"); return; }
+        if (!termsOk)              { showMsg(errEl, "Please accept the Terms & Conditions before signing up.", "error"); return; }
         if (email.toLowerCase() === ADMIN_EMAIL) { showMsg(errEl, "That email is reserved.", "error"); return; }
 
-        submitBtn.disabled    = true;
-        submitBtn.textContent = "Creating account…";
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "<i class='ph ph-circle-notch'></i> Creating account…";
         try {
             const existing = await dbGetUserByEmail(email);
             if (existing) { showMsg(errEl, "An account with that email already exists.", "error"); return; }
-
-            const newUser = { id:`usr-${Date.now()}`, email, name:`${firstName} ${lastName}`, password, role:"member" };
+            const newUser = { email, name:`${firstName} ${lastName}`, password, role:"member" };
             await dbInsertUser(newUser);
             logActivity("signup", `${newUser.name} created an account`);
-
+            addNotification(`New member registered: ${newUser.name}`, 'info');
             isLoginDirty = false;
             document.getElementById("signupForm").reset();
             showMsg(succEl, "Account created! You can now sign in.", "success");
@@ -518,8 +648,8 @@ function initLogin() {
             showMsg(errEl, "Could not create account. Please try again.", "error");
             console.error(err);
         } finally {
-            submitBtn.disabled    = false;
-            submitBtn.textContent = "Sign Up";
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = "<i class='ph ph-user-plus'></i> Create Account";
         }
     });
 }
@@ -530,6 +660,7 @@ function initLogin() {
 let _memberCatFilter = "all";
 
 async function initMemberPage() {
+    applyTheme();
     const user = ensureLogin("member");
     if (!user) return;
 
@@ -574,14 +705,13 @@ async function switchMemberSection(section) {
     );
     const user = getCurrentUser();
     if (!user) return;
-    if (section === "items")    await renderAvailableItems(user);
-    if (section === "claims")   await renderMyClaims(user);
-    if (section === "requests") await renderMyRequests(user);
+    if (section === "items")         await renderAvailableItems(user);
+    if (section === "claims")        await renderMyClaims(user);
+    if (section === "requests")      await renderMyRequests(user);
     if (section === "conversations") await renderResolutions();
 }
 
 async function renderMemberSection(user) {
-    // Show loading states immediately
     const itemsEl    = document.getElementById("itemsList");
     const claimsEl   = document.getElementById("myClaims");
     const requestsEl = document.getElementById("myRequests");
@@ -591,13 +721,12 @@ async function renderMemberSection(user) {
 
     try {
         const [items, claims, requests] = await Promise.all([
-            dbGetItems(),
-            dbGetClaims(user.email),
-            dbGetRequests(user.email),
+            dbGetItems(), dbGetClaims(user.email), dbGetRequests(user.email),
         ]);
         _renderAvailableItems(items, claims, user);
         _renderMyClaims(claims, user);
         _renderMyRequests(requests);
+        setTimeout(injectTTSButtons, 300);
     } catch (err) {
         console.error("Failed to load member data:", err);
         if (itemsEl) itemsEl.innerHTML = emptyState("Could not load items. Please refresh.");
@@ -610,6 +739,7 @@ async function renderAvailableItems(user) {
     try {
         const [items, claims] = await Promise.all([dbGetItems(), dbGetClaims(user.email)]);
         _renderAvailableItems(items, claims, user);
+        setTimeout(injectTTSButtons, 200);
     } catch (err) {
         console.error(err);
         if (listEl) listEl.innerHTML = emptyState("Could not load items.");
@@ -641,7 +771,9 @@ function generateClaimAction(item, claims, user) {
     if (item.status !== "Approved") return "";
     if (already) return `<div class="request-actions"><span class="tag tag-pending"><i class="ph ph-hourglass-high"></i> Claim Pending</span></div>`;
     return `<div class="request-actions">
-        <button class="button primary sm claim-button" data-id="${esc(item.id)}" type="button">Request Claim</button>
+        <button class="button primary sm claim-button" data-id="${esc(item.id)}" type="button">
+            <i class="ph ph-hand-grabbing"></i> Request Claim
+        </button>
     </div>`;
 }
 
@@ -651,7 +783,7 @@ async function handleClaim(itemId, user) {
         const item  = items.find(e => e.id === itemId);
         if (!item) return;
 
-        showConfirm("Request Claim", `Are you sure you want to submit a claim for "${item.name}"?`, "Submit Claim", false, async () => {
+        showConfirm("Request Claim", `Submit a claim for "${item.name}"?`, "Submit Claim", false, async () => {
             try {
                 await dbInsertClaim({
                     id: `claim-${Date.now()}`, itemId,
@@ -661,17 +793,13 @@ async function handleClaim(itemId, user) {
                     requestedBy: user.email, status: "pending"
                 });
                 logActivity("claim_request", `${user.email} requested claim on "${item.name}"`);
-                const noticeEl = document.getElementById("memberNotice");
-                if (noticeEl) {
-                    noticeEl.textContent = "Claim submitted! Admin will review it shortly.";
-                    noticeEl.classList.remove("visually-hidden");
-                    setTimeout(() => noticeEl.classList.add("visually-hidden"), 5000);
-                }
+                addNotification(`Your claim for "${item.name}" has been submitted!`, 'info');
+                showToast("Claim submitted! Admin will review it shortly.");
                 await renderAvailableItems(user);
                 await renderMyClaims(user);
             } catch (err) {
                 console.error("Claim failed:", err);
-                showToast("Could not submit claim. Please try again.");
+                showToast("Could not submit claim. Please try again.", "error");
             }
         });
     } catch (err) { console.error(err); }
@@ -683,6 +811,7 @@ async function renderMyClaims(user) {
     try {
         const claims = await dbGetClaims(user.email);
         _renderMyClaims(claims, user);
+        setTimeout(injectTTSButtons, 200);
     } catch (err) {
         console.error(err);
         if (claimsEl) claimsEl.innerHTML = emptyState("Could not load claims.");
@@ -693,18 +822,11 @@ function _renderMyClaims(claims, user) {
     const pending = claims.filter(c => c.status === "pending");
     const badge   = document.getElementById("claimsBadge");
     if (badge) { badge.textContent = pending.length; badge.classList.toggle("hidden", pending.length === 0); }
-
     const el = document.getElementById("myClaims");
     if (!el) return;
     el.innerHTML = claims.length
         ? claims.map(c => renderClaimCard(c)).join("")
         : emptyState("You haven't submitted any claim requests yet.");
-
-    const noticeEl = document.getElementById("memberNotice");
-    if (noticeEl && pending.length) {
-        noticeEl.textContent = `You have ${pending.length} pending claim${pending.length > 1 ? "s" : ""}. Admin will review soon.`;
-        noticeEl.classList.remove("visually-hidden");
-    }
 }
 
 async function renderMyRequests(user) {
@@ -713,6 +835,7 @@ async function renderMyRequests(user) {
     try {
         const requests = await dbGetRequests(user.email);
         _renderMyRequests(requests);
+        setTimeout(injectTTSButtons, 200);
     } catch (err) {
         console.error(err);
         if (reqEl) reqEl.innerHTML = emptyState("Could not load requests.");
@@ -762,7 +885,7 @@ function filterMemberItems() {
 }
 
 /* ════════════════════════════════════════════════════════
-   REQUEST FORM  (member — requestform.html)
+   REQUEST FORM
    ════════════════════════════════════════════════════════ */
 function selectType(type) {
     document.querySelectorAll(".type-choice").forEach(btn => btn.classList.remove("active-lost", "active-found"));
@@ -773,6 +896,7 @@ function selectType(type) {
 }
 
 function initRequestForm() {
+    applyTheme();
     const user = ensureLogin("member");
     if (!user) return;
 
@@ -837,7 +961,7 @@ function initRequestForm() {
             showMsg(msgEl, "Please complete every field before submitting.", "error"); return;
         }
 
-        showConfirm("Submit Request", `Are you sure you want to post this ${category} item?`, "Submit", false, async () => {
+        showConfirm("Submit Request", `Submit this ${category} item request? An admin will review it before it goes live.`, "Submit", false, async () => {
             const submitBtn = form.querySelector("button[type=submit]");
             if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Submitting…"; }
             try {
@@ -848,6 +972,7 @@ function initRequestForm() {
                     requestedBy: user.email, status: "pending"
                 });
                 logActivity("post_request", `${user.email} submitted a ${category} request for "${itemName}" (${itemType})`);
+                addNotification(`Your request for "${itemName}" has been submitted and is pending admin approval.`, 'info');
                 isFormDirty = false;
                 form.reset();
                 document.querySelectorAll(".type-tile").forEach(t  => t.classList.remove("active"));
@@ -870,12 +995,21 @@ function initRequestForm() {
    ADMIN PAGE
    ════════════════════════════════════════════════════════ */
 function initAdminPage() {
+    applyTheme();
     const user = ensureLogin("admin");
     if (!user) return;
     document.getElementById("logoutBtn").onclick = logout;
+
+    // Update admin avatar/name
+    const avatar = document.getElementById("adminAvatarText");
+    const name   = document.getElementById("adminNameText");
+    if (avatar) avatar.textContent = (user.name || "SA").slice(0,2).toUpperCase();
+    if (name)   name.textContent   = user.name || "System Admin";
+
     document.querySelectorAll(".nav-link[data-section]").forEach(link => {
         link.addEventListener("click", e => { e.preventDefault(); switchAdminSection(link.dataset.section); });
     });
+    setupNotifBell();
     renderAdminDashboard();
 }
 
@@ -897,7 +1031,7 @@ function switchAdminSection(section) {
     renders[section]?.();
 }
 
-/* ── Dashboard ───────────────────────────────────────── */
+/* ── Dashboard ── */
 async function renderAdminDashboard() {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set("statTotal","…"); set("statPendingClaims","…"); set("statFoundItems","…"); set("statMembers","…");
@@ -910,11 +1044,11 @@ async function renderAdminDashboard() {
         const [items, requests, claims, users, chatReqs] = await Promise.all([
             dbGetItems(), dbGetRequests(), dbGetClaims(), dbGetUsers(), dbGetChatRequests()
         ]);
-        
+
         const pendingReq    = requests.filter(r => r.status === "pending");
         const pendingClaims = claims.filter(c => c.status === "pending");
-        const pendingChats  = chatReqs.filter(cr => cr.status === "pending"); 
-        const totalPending  = pendingReq.length + pendingClaims.length + pendingChats.length; 
+        const pendingChats  = chatReqs.filter(cr => cr.status === "pending");
+        const totalPending  = pendingReq.length + pendingClaims.length + pendingChats.length;
 
         set("statTotal",         items.length);
         set("statPendingClaims", pendingClaims.length);
@@ -960,6 +1094,8 @@ async function renderAdminDashboard() {
                 });
             };
         }
+
+        setTimeout(injectTTSButtons, 300);
     } catch (err) {
         console.error("Dashboard load failed:", err);
         if (pendingEl)  pendingEl.innerHTML  = emptyState("Could not load data. Please refresh.");
@@ -967,7 +1103,7 @@ async function renderAdminDashboard() {
     }
 }
 
-/* ── Manage Items ────────────────────────────────────── */
+/* ── Manage Items ── */
 let _itemFilter  = "all";
 let _isEditDirty = false;
 let _cachedItems = [];
@@ -989,7 +1125,7 @@ async function renderManageItems() {
     if (editModal) {
         const closeEditHandler = () => {
             if (_isEditDirty) {
-                showConfirm("Discard Changes?", "You have unsaved edits. Are you sure you want to cancel?", "Discard", true, () => {
+                showConfirm("Discard Changes?", "You have unsaved edits. Are you sure?", "Discard", true, () => {
                     closeModal(editModal); _isEditDirty = false;
                 });
             } else { closeModal(editModal); }
@@ -1018,8 +1154,9 @@ function setupManageItemsUI(items, countEl, listEl) {
                     <button class="button danger sm delete-btn" data-id="${item.id}"><i class="ph ph-trash"></i> Delete</button>
                 </div>`)).join("")
             : emptyState("No items match this filter.");
-        listEl.querySelectorAll(".edit-btn").forEach(btn  => btn.addEventListener("click", () => openEditModal(btn.dataset.id)));
+        listEl.querySelectorAll(".edit-btn").forEach(btn   => btn.addEventListener("click", () => openEditModal(btn.dataset.id)));
         listEl.querySelectorAll(".delete-btn").forEach(btn => btn.addEventListener("click", () => deleteItem(btn.dataset.id)));
+        setTimeout(injectTTSButtons, 200);
     }
     document.querySelectorAll("#itemFilter .filter-tab").forEach(tab => {
         tab.addEventListener("click", () => {
@@ -1070,7 +1207,7 @@ async function saveItemEdit() {
             await renderManageItems();
         } catch (err) {
             console.error("Save failed:", err);
-            showToast("Could not save changes. Please try again.");
+            showToast("Could not save changes. Please try again.", "error");
         }
     });
 }
@@ -1085,12 +1222,12 @@ async function deleteItem(id) {
             await renderManageItems();
         } catch (err) {
             console.error("Delete failed:", err);
-            showToast("Could not delete item. Please try again.");
+            showToast("Could not delete item. Please try again.", "error");
         }
     });
 }
 
-/* ── Claims section ──────────────────────────────────── */
+/* ── Claims ── */
 let _claimsFilter = "all";
 
 async function renderClaimsSection() {
@@ -1120,6 +1257,7 @@ async function renderClaimsSection() {
                     processClaim(btn.dataset.id, action, claims, true);
                 });
             });
+            setTimeout(injectTTSButtons, 200);
         }
         document.querySelectorAll("#claimsFilter .filter-tab").forEach(tab => {
             tab.addEventListener("click", () => {
@@ -1136,7 +1274,7 @@ async function renderClaimsSection() {
     }
 }
 
-/* ── Users section ───────────────────────────────────── */
+/* ── Users ── (with Admin Power Granting) */
 async function renderUsersSection() {
     const countEl  = document.getElementById("usersCountLabel");
     const listEl   = document.getElementById("usersList");
@@ -1156,6 +1294,17 @@ async function renderUsersSection() {
                 const reqCount   = requests.filter(r => r.requestedBy === u.email).length;
                 const claimCount = claims.filter(c => c.requestedBy === u.email).length;
                 const joinDate   = u.joinedAt ? new Date(u.joinedAt).toLocaleDateString() : "Unknown";
+                const isAdmin    = u.role === "admin" || u.role === "Admin";
+                const roleBadge  = isAdmin
+                    ? `<span class="admin-badge"><i class="ph ph-shield-star"></i> Admin</span>`
+                    : `<span class="tag tag-approved">● Member</span>`;
+                const roleBtn = isAdmin
+                    ? `<button class="button secondary sm revoke-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}">
+                           <i class="ph ph-shield-slash"></i> Revoke Admin
+                       </button>`
+                    : `<button class="button outline sm grant-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}">
+                           <i class="ph ph-shield-star"></i> Grant Admin
+                       </button>`;
                 return `
                 <article class="card item-card">
                     <div class="item-header">
@@ -1166,7 +1315,7 @@ async function renderUsersSection() {
                                 <p style="margin:0;font-size:0.79rem;color:var(--text-secondary);">${esc(u.email)}</p>
                             </div>
                         </div>
-                        <span class="tag tag-approved">● Member</span>
+                        ${roleBadge}
                     </div>
                     <dl style="margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
                         <div class="user-stat"><dt>Joined</dt><dd style="font-size:0.9rem;">${joinDate}</dd></div>
@@ -1174,20 +1323,59 @@ async function renderUsersSection() {
                         <div class="user-stat"><dt>Claims</dt><dd>${claimCount}</dd></div>
                     </dl>
                     <div class="request-actions">
-                        <button class="button danger sm remove-user-btn" data-email="${esc(u.email)}">Remove User</button>
+                        ${roleBtn}
+                        <button class="button danger sm remove-user-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}">
+                            <i class="ph ph-trash"></i> Remove
+                        </button>
                     </div>
                 </article>`;
             }).join("");
 
+            /* Grant Admin */
+            listEl.querySelectorAll(".grant-admin-btn").forEach(btn =>
+                btn.addEventListener("click", () => {
+                    showConfirm("Grant Admin Powers", `Give admin privileges to ${btn.dataset.name}? They will be able to approve posts, manage items, and moderate claims.`, "Grant Admin", false, async () => {
+                        try {
+                            await dbUpdateUserRole(btn.dataset.email, "admin");
+                            logActivity("admin_granted", `Admin powers granted to ${btn.dataset.name} (${btn.dataset.email})`);
+                            addNotification(`Admin powers granted to ${btn.dataset.name}.`, 'info');
+                            showToast(`${btn.dataset.name} is now an admin!`);
+                            await renderUsersSection();
+                        } catch (err) {
+                            console.error(err);
+                            showToast("Could not update role. Please try again.", "error");
+                        }
+                    });
+                })
+            );
+
+            /* Revoke Admin */
+            listEl.querySelectorAll(".revoke-admin-btn").forEach(btn =>
+                btn.addEventListener("click", () => {
+                    showConfirm("Revoke Admin Powers", `Remove admin privileges from ${btn.dataset.name}?`, "Revoke", true, async () => {
+                        try {
+                            await dbUpdateUserRole(btn.dataset.email, "member");
+                            logActivity("admin_revoked", `Admin powers revoked from ${btn.dataset.name} (${btn.dataset.email})`);
+                            showToast(`${btn.dataset.name}'s admin role has been revoked.`);
+                            await renderUsersSection();
+                        } catch (err) {
+                            console.error(err);
+                            showToast("Could not update role. Please try again.", "error");
+                        }
+                    });
+                })
+            );
+
+            /* Remove User */
             listEl.querySelectorAll(".remove-user-btn").forEach(btn =>
                 btn.addEventListener("click", () => {
-                    showConfirm("Remove Member", `Permanently remove user ${btn.dataset.email}?`, "Remove", true, async () => {
+                    showConfirm("Remove Member", `Permanently remove ${btn.dataset.name}?`, "Remove", true, async () => {
                         try {
                             await dbDeleteUser(btn.dataset.email);
                             await renderUsersSection();
                         } catch (err) {
                             console.error(err);
-                            showToast("Could not remove user. Please try again.");
+                            showToast("Could not remove user. Please try again.", "error");
                         }
                     });
                 })
@@ -1201,7 +1389,7 @@ async function renderUsersSection() {
     }
 }
 
-/* ── Activity Log ────────────────────────────────────── */
+/* ── Activity Log ── */
 function renderActivityLog() {
     const log     = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_ACTIVITY)) ?? []; } catch { return []; } })();
     const countEl = document.getElementById("activityCountLabel");
@@ -1225,7 +1413,7 @@ function renderActivityLog() {
     const clearBtn = document.getElementById("clearActivityBtn");
     if (clearBtn) {
         clearBtn.onclick = () => {
-            showConfirm("Clear Log", "Are you sure you want to clear the entire activity log? This cannot be undone.", "Clear All", true, () => {
+            showConfirm("Clear Log", "Are you sure you want to clear the entire activity log?", "Clear All", true, () => {
                 localStorage.setItem(STORAGE_ACTIVITY, JSON.stringify([]));
                 logActivity("activity_cleared", "Activity log cleared by admin");
                 renderActivityLog();
@@ -1234,8 +1422,7 @@ function renderActivityLog() {
     }
 }
 
-/* ── Modals ──────────────────────────────────────────── */
-/* ── Modals ──────────────────────────────────────────── */
+/* ── Admin Modals ── */
 function openRequestModal(pendingReq, pendingClaims, pendingChats, modal, allRequests, allClaims) {
     modal.classList.remove("hidden"); modal.setAttribute("aria-hidden", "false");
     const postEl  = document.getElementById("modalPostRequests");
@@ -1264,9 +1451,11 @@ function openRequestModal(pendingReq, pendingClaims, pendingChats, modal, allReq
                 <div class="item-header"><span class="tag tag-pending"><i class="ph ph-chat-circle"></i> Chat Request</span></div>
                 <h3 style="margin-top:8px;">${esc(chat.user_name)}</h3>
                 <p><strong>Reason:</strong> ${esc(chat.reason)}</p>
-                <p style="font-size: 0.8rem; color: var(--text-secondary);">${esc(chat.user_email)}</p>
+                <p style="font-size:0.8rem;color:var(--text-secondary);">${esc(chat.user_email)}</p>
                 <div class="request-actions">
-                    <button class="button primary sm" data-action="approve-chat" data-id="${chat.id}" data-email="${esc(chat.user_email)}" data-name="${esc(chat.user_name)}"><i class="ph ph-chat-text"></i> Accept & Chat</button>
+                    <button class="button primary sm" data-action="approve-chat" data-id="${chat.id}" data-email="${esc(chat.user_email)}" data-name="${esc(chat.user_name)}">
+                        <i class="ph ph-chat-text"></i> Accept &amp; Chat
+                    </button>
                     <button class="button danger sm" data-action="reject-chat" data-id="${chat.id}"><i class="ph ph-x"></i> Reject</button>
                 </div>
             </article>`).join("")
@@ -1285,24 +1474,18 @@ function openRequestModal(pendingReq, pendingClaims, pendingChats, modal, allReq
     });
 }
 
-function closeModal(modal) { 
-    // Remove focus from the clicked button to prevent aria-hidden browser warnings
-    if (document.activeElement) {
-        document.activeElement.blur();
-    }
-    
-    modal.classList.add("hidden"); 
-    modal.setAttribute("aria-hidden", "true"); 
+function closeModal(modal) {
+    if (document.activeElement) document.activeElement.blur();
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
 }
+
 async function processChatRequest(id, action, email, name) {
     const isApprove = action === "approve";
-    const actionTxt = isApprove ? "Accept" : "Reject";
-
-    showConfirm(`${actionTxt} Chat Request`, `Are you sure you want to ${actionTxt.toLowerCase()} this chat request?`, actionTxt, !isApprove, async () => {
+    showConfirm(`${isApprove?"Accept":"Reject"} Chat Request`, `Are you sure?`, isApprove?"Accept":"Reject", !isApprove, async () => {
         try {
             await dbUpdateChatRequestStatus(id, isApprove ? "approved" : "rejected");
             closeModal(document.getElementById("requestModal"));
-            
             if (isApprove) {
                 window.location.href = `messageft.html?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`;
             } else {
@@ -1310,16 +1493,14 @@ async function processChatRequest(id, action, email, name) {
             }
         } catch (err) {
             console.error(err);
-            showToast("Error processing chat request.");
+            showToast("Error processing chat request.", "error");
         }
     });
 }
 
-/* ── Admin Actions ───────────────────────────────────── */
 async function processRequest(id, action, cachedRequests = null) {
     const isApprove = action === "approve";
     const actionTxt = isApprove ? "Approve" : "Reject";
-
     showConfirm(`${actionTxt} Request`, `Are you sure you want to ${actionTxt.toLowerCase()} this post request?`, actionTxt, !isApprove, async () => {
         try {
             const requests = cachedRequests || await dbGetRequests();
@@ -1333,15 +1514,17 @@ async function processRequest(id, action, cachedRequests = null) {
                     date: req.date, contact: req.contact
                 });
                 logActivity("post_approved", `"${req.name}" by ${req.requestedBy} was approved`);
+                addNotification(`Post request for "${req.name}" approved.`, 'info');
             } else {
                 logActivity("post_rejected", `"${req.name}" by ${req.requestedBy} was rejected`);
+                addNotification(`Post request for "${req.name}" rejected.`, 'info');
             }
             await dbUpdateRequestStatus(id, isApprove ? "approved" : "rejected");
             closeModal(document.getElementById("requestModal"));
             await renderAdminDashboard();
         } catch (err) {
             console.error("processRequest failed:", err);
-            showToast("Could not process request. Please try again.");
+            showToast("Could not process request. Please try again.", "error");
         }
     });
 }
@@ -1349,7 +1532,6 @@ async function processRequest(id, action, cachedRequests = null) {
 async function processClaim(id, action, cachedClaims = null, fromClaimsSection = false) {
     const isApprove = action === "approve";
     const actionTxt = isApprove ? "Approve" : "Reject";
-
     showConfirm(`${actionTxt} Claim`, `Are you sure you want to ${actionTxt.toLowerCase()} this claim request?`, actionTxt, !isApprove, async () => {
         try {
             const claims = cachedClaims || await dbGetClaims();
@@ -1359,22 +1541,25 @@ async function processClaim(id, action, cachedClaims = null, fromClaimsSection =
             if (isApprove) {
                 await dbUpdateItem(claim.itemId, { status: "Claimed" });
                 logActivity("claim_approved", `Claim on "${claim.name}" by ${claim.requestedBy} approved`);
+                addNotification(`Claim on "${claim.name}" has been approved.`, 'info');
             } else {
                 logActivity("claim_rejected", `Claim on "${claim.name}" by ${claim.requestedBy} rejected`);
+                addNotification(`Claim on "${claim.name}" has been rejected.`, 'info');
             }
             if (fromClaimsSection) await renderClaimsSection();
             else { closeModal(document.getElementById("requestModal")); await renderAdminDashboard(); }
         } catch (err) {
             console.error("processClaim failed:", err);
-            showToast("Could not process claim. Please try again.");
+            showToast("Could not process claim. Please try again.", "error");
         }
     });
 }
 
 /* ════════════════════════════════════════════════════════
-   ADMIN REQUEST FORM  (adminrequestform.html)
+   ADMIN REQUEST FORM
    ════════════════════════════════════════════════════════ */
 function initAdminRequestForm() {
+    applyTheme();
     const user = ensureLogin("admin");
     if (!user) return;
 
@@ -1408,7 +1593,7 @@ function initAdminRequestForm() {
         cancelBtn.addEventListener("click", e => {
             if (isFormDirty) {
                 e.preventDefault();
-                showConfirm("Discard Post?", "You have unsaved details. Are you sure you want to go back?", "Discard", true, () => {
+                showConfirm("Discard Post?", "You have unsaved details. Are you sure?", "Discard", true, () => {
                     window.location.href = cancelBtn.href;
                 });
             }
@@ -1439,29 +1624,24 @@ function initAdminRequestForm() {
             showMsg(msgEl, "Please complete every field before posting.", "error"); return;
         }
 
-        showConfirm(
-            "Post Item Directly",
-            `Post "${itemName}" as a ${category} item? It will be live on the board immediately.`,
-            "Post Item", false,
-            async () => {
-                const submitBtn = form.querySelector("button[type=submit]");
-                if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Posting…"; }
-                try {
-                    await dbInsertItem({
-                        id: `item-${Date.now()}`,
-                        name: itemName, category, itemType, description, location,
-                        date: dateFound, contact: contactInfo
-                    });
-                    logActivity("post_approved", `Admin posted "${itemName}" (${category} · ${itemType}) directly`);
-                    isFormDirty = false;
-                    window.location.href = "adminpage.html";
-                } catch (err) {
-                    showMsg(msgEl, "Could not post item. Please try again.", "error");
-                    console.error(err);
-                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Post Item"; }
-                }
+        showConfirm("Post Item Directly", `Post "${itemName}" as a ${category} item? It goes live immediately.`, "Post Item", false, async () => {
+            const submitBtn = form.querySelector("button[type=submit]");
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Posting…"; }
+            try {
+                await dbInsertItem({
+                    id: `item-${Date.now()}`,
+                    name: itemName, category, itemType, description, location,
+                    date: dateFound, contact: contactInfo
+                });
+                logActivity("post_approved", `Admin posted "${itemName}" (${category} · ${itemType}) directly`);
+                isFormDirty = false;
+                window.location.href = "adminpage.html";
+            } catch (err) {
+                showMsg(msgEl, "Could not post item. Please try again.", "error");
+                console.error(err);
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Post Item"; }
             }
-        );
+        });
     });
 }
 
@@ -1497,6 +1677,7 @@ function initMobileMenu() {
    ROUTER
    ════════════════════════════════════════════════════════ */
 function initPage() {
+    setupThemeToggle();
     const page = document.body.dataset.page;
     if (page === "login")        initLogin();
     if (page === "member")       initMemberPage();
@@ -1508,21 +1689,18 @@ function initPage() {
 window.addEventListener("DOMContentLoaded", initPage);
 
 /* ════════════════════════════════════════════════════════
-   NEW CHAT & RESOLUTION LOGIC
+   CHAT & RESOLUTION
    ════════════════════════════════════════════════════════ */
-
-// 1. Open Member Chat Request Modal
 function openChatRequestModal() {
     const m = document.getElementById('chatRequestModal');
     if(m) { m.classList.remove('hidden'); m.setAttribute('aria-hidden', 'false'); }
 }
 
-// 2. Member Submits Chat Request
 const chatReqForm = document.getElementById('chatRequestForm');
 if(chatReqForm) {
     chatReqForm.onsubmit = async (e) => {
         e.preventDefault();
-        const user = getCurrentUser();
+        const user   = getCurrentUser();
         const reason = document.getElementById('chatReason').value;
         await supabaseClient.from('chat_requests').insert([{
             user_email: user.email, user_name: user.name, reason: reason
@@ -1532,28 +1710,24 @@ if(chatReqForm) {
     };
 }
 
-// 3. Admin: Load Users into the Select Modal
 async function populateAdminChatUserList() {
     const list = document.getElementById('userChatList');
     if(!list) return;
     const { data: users } = await supabaseClient.from('users').select('*').neq('role', 'admin');
-    
-    list.innerHTML = users.map(u => `
-        <div class="card item-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px;">
-            <div><p style="font-weight:bold; margin:0;">${esc(u.name)}</p><p style="font-size:0.8rem; margin:0;">${esc(u.email)}</p></div>
-            <a href="messageft.html?email=${encodeURIComponent(u.email)}&name=${encodeURIComponent(u.name)}" class="button primary sm">Chat</a>
+    list.innerHTML = (users || []).map(u => `
+        <div class="card item-card" style="display:flex;justify-content:space-between;align-items:center;padding:10px;">
+            <div><p style="font-weight:bold;margin:0;">${esc(u.name)}</p><p style="font-size:0.8rem;margin:0;">${esc(u.email)}</p></div>
+            <a href="messageft.html?email=${encodeURIComponent(u.email)}&name=${encodeURIComponent(u.name)}" class="button primary sm">
+                <i class="ph ph-chat-dots"></i> Chat
+            </a>
         </div>
     `).join("");
 }
 
-// Open User Select Modal and populate it
 const userSelectModal = document.getElementById('userSelectModal');
 if(userSelectModal) {
-    // We attach an observer to load users when it is un-hidden
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (!userSelectModal.classList.contains('hidden')) populateAdminChatUserList();
-        });
+    const observer = new MutationObserver(() => {
+        if (!userSelectModal.classList.contains('hidden')) populateAdminChatUserList();
     });
     observer.observe(userSelectModal, { attributes: true, attributeFilter: ['class'] });
 }
@@ -1562,23 +1736,18 @@ async function renderResolutions() {
     const listEl = document.getElementById("resolutionsList");
     if (!listEl) return;
     listEl.innerHTML = loadingState("Loading meetings...");
-    
     const user = getCurrentUser();
     let query = supabaseClient.from("resolutions").select("*").order("created_at", { ascending: false });
-    
-    // If a member is looking, only show their own meetings!
     if (user && user.role !== "admin") {
         query = query.eq("user_email", user.email);
     }
-    
     const { data, error } = await query;
     if (error) { listEl.innerHTML = emptyState("Error loading logs."); return; }
-    
     listEl.innerHTML = data.length ? data.map(r => `
         <article class="card item-card">
             <div class="item-header">
                 <span class="tag tag-approved"><i class="ph ph-handshake"></i> ${esc(r.action_type)}</span>
-                <span style="font-size: 0.8rem; color: var(--text-secondary);">${esc(r.meeting_date)} at ${esc(r.meeting_time)}</span>
+                <span style="font-size:0.8rem;color:var(--text-secondary);">${esc(r.meeting_date)} at ${esc(r.meeting_time)}</span>
             </div>
             <h3>Meeting with: ${esc(r.user_email)}</h3>
             <p><strong>Location:</strong> ${esc(r.location)}</p>

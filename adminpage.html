@@ -1,293 +1,404 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard — Lost & Found</title>
-    <link rel="stylesheet" href="style.css">
-
-    <link rel="icon" type="image/png" href="logo.png">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — iAcademy Lost & Found</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body class="page page-admin" data-page="admin">
+
+<!-- Dark / Light Toggle -->
+<button id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle theme">
+  <i class="ph ph-moon" id="themeIcon"></i>
+</button>
+
 <div class="app-shell">
 <div class="layout">
 
-    <div class="mobile-header">
-        <div class="brand-panel" style="margin-bottom:0; padding:0;">
-            <div class="brand-mark">Å</div>
-            <div>
-                <p class="brand-title">Lost &amp; Found</p>
-                <span class="brand-subtitle">iAcademy</span>
-            </div>
-        </div>
-        <button class="icon-button" id="mobileMenuBtn" aria-label="Toggle Menu">
-            <i class="ph ph-list" id="menuIcon"></i>
-        </button>
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+    <div class="brand-panel" style="margin-bottom:0;padding:0;">
+      <svg class="brand-hex" viewBox="0 0 80 80" fill="none">
+        <path d="M40 4L72 22V58L40 76L8 58V22Z" fill="rgba(77,130,255,0.12)" stroke="rgba(77,130,255,0.4)" stroke-width="1.5"/>
+        <path d="M40 12L64 26V54L40 68L16 54V26Z" fill="white" opacity="0.92"/>
+        <rect x="35" y="22" width="10" height="7" rx="1.5" fill="#05063a"/>
+        <path d="M40 34L40 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M29 54L40 34L51 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M34 47L46 47" stroke="#05063a" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <p class="brand-title">Lost &amp; Found</p>
+        <span class="brand-subtitle">iAcademy · Admin</span>
+      </div>
+    </div>
+    <button class="icon-button" id="mobileMenuBtn" aria-label="Toggle Menu">
+      <i class="ph ph-list" id="menuIcon"></i>
+    </button>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="appSidebar">
+    <div class="brand-panel desktop-brand">
+      <svg class="brand-hex" viewBox="0 0 80 80" fill="none">
+        <path d="M40 4L72 22V58L40 76L8 58V22Z" fill="rgba(77,130,255,0.12)" stroke="rgba(77,130,255,0.4)" stroke-width="1.5"/>
+        <path d="M40 12L64 26V54L40 68L16 54V26Z" fill="white" opacity="0.92"/>
+        <rect x="35" y="22" width="10" height="7" rx="1.5" fill="#05063a"/>
+        <path d="M40 34L40 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M29 54L40 34L51 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M34 47L46 47" stroke="#05063a" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <p class="brand-title">Lost &amp; Found</p>
+        <span class="brand-subtitle">iAcademy · Admin</span>
+      </div>
     </div>
 
-    <aside class="sidebar" id="appSidebar">
-        <div class="brand-panel desktop-brand">
-            <div class="brand-mark">Å</div>
+    <nav class="sidebar-nav">
+      <a class="nav-link active" data-section="dashboard" href="#">
+        <span class="nav-link-icon"><i class="ph ph-squares-four"></i></span> Dashboard
+      </a>
+      <a class="nav-link" data-section="manage-items" href="#">
+        <span class="nav-link-icon"><i class="ph ph-folder-open"></i></span> Manage Items
+      </a>
+      <a class="nav-link" data-section="claims" href="#">
+        <span class="nav-link-icon"><i class="ph ph-shield-check"></i></span> Claims
+        <span id="claimsBadgeSidebar" class="badge-inline hidden">0</span>
+      </a>
+      <a class="nav-link" data-section="users" href="#">
+        <span class="nav-link-icon"><i class="ph ph-users"></i></span> Users
+      </a>
+      <div class="nav-divider"></div>
+      <a class="nav-link" data-section="activity" href="#">
+        <span class="nav-link-icon"><i class="ph ph-list-dashes"></i></span> Activity Log
+      </a>
+      <a class="nav-link" data-section="conversations" href="#">
+        <span class="nav-link-icon"><i class="ph ph-calendar-check"></i></span> Meetings Log
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="profile-card">
+        <div class="profile-info">
+          <div class="profile-avatar" id="adminAvatarText">SA</div>
+          <div>
+            <p class="profile-name" id="adminNameText">System Admin</p>
+            <p class="profile-role">Administrator</p>
+          </div>
+        </div>
+        <button id="logoutBtn" class="logout-icon-btn" aria-label="Sign Out" title="Sign Out">
+          <i class="ph ph-sign-out"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Content Area -->
+  <div class="content-area">
+
+    <!-- User Select Modal (for chat) -->
+    <div id="userSelectModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" onclick="closeModal(this.parentElement)"></div>
+      <div class="modal-panel" style="max-width:400px;">
+        <div class="modal-header">
+          <div><h2>Select User</h2><p>Choose a member to message.</p></div>
+          <button onclick="closeModal(document.getElementById('userSelectModal'))" class="button secondary sm"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="search-field" style="margin-bottom:15px;">
+          <input type="search" id="userChatSearch" placeholder="Search by name or email...">
+        </div>
+        <div id="userChatList" class="list-grid" style="max-height:300px;overflow-y:auto;"></div>
+      </div>
+    </div>
+
+    <!-- Request / Notifications Modal -->
+    <div id="requestModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div><h2>Member Requests</h2><p>Review pending post and claim requests from members.</p></div>
+          <button id="closeModal" class="button secondary sm"><i class="ph ph-x"></i> Close</button>
+        </div>
+        <section><h3>Post Requests</h3><div id="modalPostRequests" class="list-grid"></div></section>
+        <section><h3>Claim Requests</h3><div id="modalClaimRequests" class="list-grid"></div></section>
+        <section><h3>Chat Requests</h3><div id="modalChatRequests" class="list-grid"></div></section>
+      </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div id="editModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-panel" style="max-width:540px;">
+        <div class="modal-header">
+          <div><h2>Edit Item</h2><p>Update the item details below.</p></div>
+          <button id="closeEditModal" class="button secondary sm"><i class="ph ph-x"></i> Close</button>
+        </div>
+        <form id="editItemForm">
+          <input type="hidden" id="editItemId">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <label style="margin-bottom:0;">Item Name<input type="text" id="editItemName" required></label>
+            <label style="margin-bottom:0;">Category
+              <select id="editItemCategory">
+                <option value="Lost">Lost</option>
+                <option value="Found">Found</option>
+              </select>
+            </label>
+          </div>
+          <label style="margin-top:16px;">Description<textarea id="editItemDesc" rows="3"></textarea></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <label style="margin-bottom:0;">Location<input type="text" id="editItemLocation"></label>
+            <label style="margin-bottom:0;">Status
+              <select id="editItemStatus">
+                <option value="Approved">Approved</option>
+                <option value="Claimed">Claimed</option>
+              </select>
+            </label>
+          </div>
+          <label style="margin-top:16px;">Contact<input type="text" id="editItemContact"></label>
+          <div class="form-actions" style="margin-top:8px;">
+            <button type="submit" class="button primary" style="flex:1;"><i class="ph ph-floppy-disk"></i> Save Changes</button>
+            <button type="button" id="cancelEditModal" class="button secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Recent Conversations -->
+    <div id="section-conversations" class="admin-section hidden">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · Logs</p>
+          <h1>Recent Conversations</h1>
+          <p class="section-note">Confirmed claims, returns, and scheduled meetings from chats.</p>
+        </div>
+      </header>
+      <section class="panel">
+        <div id="resolutionsList" class="list-grid"></div>
+      </section>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="section-dashboard" class="admin-section">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · iAcademy</p>
+          <h1>Dashboard</h1>
+          <p class="section-note">Track item postings, member requests, and active claims across campus.</p>
+        </div>
+        <div class="header-actions">
+          <div class="search-field"><input type="search" id="adminSearch" placeholder="Search items, requests…"></div>
+          <!-- Notification Bell with Dropdown -->
+          <div class="notif-bell-wrap">
+            <button id="notificationBell" class="icon-button" aria-label="View member requests">
+              <i class="ph ph-bell"></i>
+              <span id="notificationCount" class="badge">0</span>
+            </button>
+          </div>
+        </div>
+      </header>
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span class="stat-icon"><i class="ph ph-package"></i></span>
+          <p class="stat-label">Total Items</p>
+          <p id="statTotal" class="stat-value">0</p>
+          <p class="stat-meta">Active records</p>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon"><i class="ph ph-hourglass-high"></i></span>
+          <p class="stat-label">Pending Claims</p>
+          <p id="statPendingClaims" class="stat-value">0</p>
+          <p class="stat-meta">Awaiting review</p>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon"><i class="ph ph-check-circle"></i></span>
+          <p class="stat-label">Found Items</p>
+          <p id="statFoundItems" class="stat-value">0</p>
+          <p class="stat-meta">Available now</p>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon"><i class="ph ph-users"></i></span>
+          <p class="stat-label">Members</p>
+          <p id="statMembers" class="stat-value">0</p>
+          <p class="stat-meta">Registered users</p>
+        </article>
+      </section>
+      <main>
+        <section class="panel">
+          <div class="panel-header">
             <div>
-                <p class="brand-title">Lost &amp; Found</p>
-                <span class="brand-subtitle">iAcademy</span>
+              <h2>Pending Post Requests</h2>
+              <p>New items submitted by members waiting for approval.</p>
             </div>
-        </div>
-        <nav class="sidebar-nav">
-            <a class="nav-link active" data-section="dashboard" href="#">
-                <span class="nav-link-icon"><i class="ph ph-squares-four"></i></span> Dashboard
-            </a>
-            <a class="nav-link" data-section="manage-items" href="#">
-                <span class="nav-link-icon"><i class="ph ph-folder-open"></i></span> Manage Items
-            </a>
-            <a class="nav-link" data-section="claims" href="#">
-                <span class="nav-link-icon"><i class="ph ph-shield-check"></i></span> Claims
-                <span id="claimsBadgeSidebar" class="badge-inline hidden">0</span>
-            </a>
-            <a class="nav-link" data-section="users" href="#">
-                <span class="nav-link-icon"><i class="ph ph-users"></i></span> Users
-            </a>
-            <div class="nav-divider"></div>
-            <a class="nav-link" data-section="activity" href="#">
-                <span class="nav-link-icon"><i class="ph ph-list-dashes"></i></span> Activity Log
-            </a>
-            <a class="nav-link" data-section="conversations" href="#">
-                <span class="nav-link-icon"><i class="ph ph-calendar-check"></i></span> Meetings Log
-            </a>
-        </nav>
-        
-        <div class="sidebar-footer">
-            <div class="profile-card">
-                <div class="profile-info">
-                    <div class="profile-avatar">SA</div>
-                    <div>
-                        <p class="profile-name">System Admin</p>
-                        <p class="profile-role">Administrator</p>
-                    </div>
-                </div>
-                <button id="logoutBtn" class="logout-icon-btn" aria-label="Sign Out" title="Sign Out">
-                    <i class="ph ph-sign-out"></i>
-                </button>
+          </div>
+          <div id="pendingRequests" class="list-grid"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Approved Items</h2>
+              <p>Items currently visible to all members.</p>
             </div>
-        </div>
-    </aside>
+          </div>
+          <div id="approvedItems" class="list-grid"></div>
+        </section>
+      </main>
+    </div>
 
-    <div class="content-area">
-        <div id="userSelectModal" class="modal hidden" aria-hidden="true">
-            <div class="modal-backdrop" onclick="closeModal(this.parentElement)"></div>
-            <div class="modal-panel" style="max-width:400px;">
-                <div class="modal-header">
-                    <div><h2>Select User</h2><p>Choose a member to message.</p></div>
-                    <button onclick="closeModal(document.getElementById('userSelectModal'))" class="button secondary sm"><i class="ph ph-x"></i></button>
-                </div>
-                <div class="search-field" style="margin-bottom:15px;"><input type="search" id="userChatSearch" placeholder="Search by name or email..."></div>
-                <div id="userChatList" class="list-grid" style="max-height:300px; overflow-y:auto;">
-                    </div>
-            </div>
+    <!-- MANAGE ITEMS -->
+    <div id="section-manage-items" class="admin-section hidden">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · Items</p>
+          <h1>Manage Items</h1>
+          <p class="section-note">Edit, delete, or update the status of any item on the board.</p>
         </div>
-
-        <div id="section-conversations" class="admin-section hidden">
-            <header class="page-header">
-                <div>
-                    <p class="section-label">Admin · Logs</p>
-                    <h1>Recent Conversations</h1>
-                    <p class="section-note">Confirmed claims, returns, and scheduled meetings from chats.</p>
-                </div>
-            </header>
-            <section class="panel">
-                <div id="resolutionsList" class="list-grid"></div>
-            </section>
+        <div class="header-actions" style="flex-wrap:wrap;gap:10px;">
+          <div class="search-field"><input type="search" id="itemSearch" placeholder="Search items…"></div>
+          <div class="filter-tabs" id="itemFilter">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="Lost">Lost</button>
+            <button class="filter-tab" data-filter="Found">Found</button>
+            <button class="filter-tab" data-filter="Claimed">Claimed</button>
+          </div>
         </div>
-        <div id="requestModal" class="modal hidden" aria-hidden="true">
-            <div class="modal-backdrop"></div>
-            <div class="modal-panel">
-                <div class="modal-header">
-                    <div><h2>Member Requests</h2><p>Review pending post and claim requests from members.</p></div>
-                    <button id="closeModal" class="button secondary sm"><i class="ph ph-x"></i> Close</button>
-                </div>
-                <section><h3>Post Requests</h3><div id="modalPostRequests" class="list-grid"></div></section>
-                <section><h3>Claim Requests</h3><div id="modalClaimRequests" class="list-grid"></div></section>
-                
-                <section><h3>Chat Requests</h3><div id="modalChatRequests" class="list-grid"></div></section>
-
-            </div>
+      </header>
+      <section class="panel">
+        <div class="panel-header">
+          <div><h2>All Items</h2><p id="itemCountLabel">Loading…</p></div>
         </div>
+        <div id="allItemsList" class="list-grid"></div>
+      </section>
+    </div>
 
-        <div id="editModal" class="modal hidden" aria-hidden="true">
-            <div class="modal-backdrop"></div>
-            <div class="modal-panel" style="max-width:540px;">
-                <div class="modal-header">
-                    <div><h2>Edit Item</h2><p>Update the item details below.</p></div>
-                    <button id="closeEditModal" class="button secondary sm"><i class="ph ph-x"></i> Close</button>
-                </div>
-                <form id="editItemForm">
-                    <input type="hidden" id="editItemId">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                        <label style="margin-bottom:0;">Item Name<input type="text" id="editItemName" required></label>
-                        <label style="margin-bottom:0;">Category
-                            <select id="editItemCategory"><option value="Lost">Lost</option><option value="Found">Found</option></select>
-                        </label>
-                    </div>
-                    <label style="margin-top:16px;">Description<textarea id="editItemDesc" rows="3"></textarea></label>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                        <label style="margin-bottom:0;">Location<input type="text" id="editItemLocation"></label>
-                        <label style="margin-bottom:0;">Status
-                            <select id="editItemStatus"><option value="Approved">Approved</option><option value="Claimed">Claimed</option></select>
-                        </label>
-                    </div>
-                    <label style="margin-top:16px;">Contact<input type="text" id="editItemContact"></label>
-                    <div class="form-actions" style="margin-top:8px;">
-                        <button type="submit" class="button primary" style="flex:1;">Save Changes</button>
-                        <button type="button" id="cancelEditModal" class="button secondary">Cancel</button>
-                    </div>
-                </form>
-            </div>
+    <!-- CLAIMS -->
+    <div id="section-claims" class="admin-section hidden">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · Claims</p>
+          <h1>Claims</h1>
+          <p class="section-note">Review all member claim requests and manage their status.</p>
         </div>
-
-        <div id="section-dashboard" class="admin-section">
-            <header class="page-header">
-                <div>
-                    <p class="section-label">Admin · iAcademy</p>
-                    <h1>Dashboard</h1>
-                    <p class="section-note">Track item postings, member requests, and active claims across campus.</p>
-                </div>
-                <div class="header-actions">
-                    <div class="search-field"><input type="search" id="adminSearch" placeholder="Search items, requests…"></div>
-                    <button id="notificationBell" class="icon-button" aria-label="View member requests">
-                        <i class="ph ph-bell"></i><span id="notificationCount" class="badge">0</span>
-                    </button>
-                </div>
-            </header>
-            <section class="stats-grid">
-                <article class="stat-card"><span class="stat-icon"><i class="ph ph-package"></i></span><p class="stat-label">Total Items</p><p id="statTotal" class="stat-value">0</p><p class="stat-meta">Active records</p></article>
-                <article class="stat-card"><span class="stat-icon"><i class="ph ph-hourglass-high"></i></span><p class="stat-label">Pending Claims</p><p id="statPendingClaims" class="stat-value">0</p><p class="stat-meta">Awaiting review</p></article>
-                <article class="stat-card"><span class="stat-icon"><i class="ph ph-check-circle"></i></span><p class="stat-label">Found Items</p><p id="statFoundItems" class="stat-value">0</p><p class="stat-meta">Available now</p></article>
-                <article class="stat-card"><span class="stat-icon"><i class="ph ph-users"></i></span><p class="stat-label">Members</p><p id="statMembers" class="stat-value">0</p><p class="stat-meta">Registered users</p></article>
-            </section>
-            <main>
-                <section class="panel">
-                    <div class="panel-header"><div><h2>Pending Post Requests</h2><p>New items submitted by members waiting for approval.</p></div></div>
-                    <div id="pendingRequests" class="list-grid"></div>
-                </section>
-                <section class="panel">
-                    <div class="panel-header"><div><h2>Approved Items</h2><p>Items currently visible to all members.</p></div></div>
-                    <div id="approvedItems" class="list-grid"></div>
-                </section>
-            </main>
+        <div class="header-actions">
+          <div class="filter-tabs" id="claimsFilter">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="pending">Pending</button>
+            <button class="filter-tab" data-filter="approved">Approved</button>
+            <button class="filter-tab" data-filter="rejected">Rejected</button>
+          </div>
         </div>
-
-        <div id="section-manage-items" class="admin-section hidden">
-            <header class="page-header">
-                <div>
-                    <p class="section-label">Admin · Items</p>
-                    <h1>Manage Items</h1>
-                    <p class="section-note">Edit, delete, or update the status of any item on the board.</p>
-                </div>
-                <div class="header-actions" style="flex-wrap:wrap;gap:10px;">
-                    <div class="search-field"><input type="search" id="itemSearch" placeholder="Search items…"></div>
-                    <div class="filter-tabs" id="itemFilter">
-                        <button class="filter-tab active" data-filter="all">All</button>
-                        <button class="filter-tab" data-filter="Lost">Lost</button>
-                        <button class="filter-tab" data-filter="Found">Found</button>
-                        <button class="filter-tab" data-filter="Claimed">Claimed</button>
-                    </div>
-                </div>
-            </header>
-            <section class="panel">
-                <div class="panel-header">
-                    <div><h2>All Items</h2><p id="itemCountLabel">Loading…</p></div>
-                </div>
-                <div id="allItemsList" class="list-grid"></div>
-            </section>
+      </header>
+      <section class="panel">
+        <div class="panel-header">
+          <div><h2>Claim Requests</h2><p id="claimsCountLabel">Loading…</p></div>
         </div>
+        <div id="allClaimsList" class="list-grid"></div>
+      </section>
+    </div>
 
-        <div id="section-claims" class="admin-section hidden">
-            <header class="page-header">
-                <div>
-                    <p class="section-label">Admin · Claims</p>
-                    <h1>Claims</h1>
-                    <p class="section-note">Review all member claim requests and manage their status.</p>
-                </div>
-                <div class="header-actions">
-                    <div class="filter-tabs" id="claimsFilter">
-                        <button class="filter-tab active" data-filter="all">All</button>
-                        <button class="filter-tab" data-filter="pending">Pending</button>
-                        <button class="filter-tab" data-filter="approved">Approved</button>
-                        <button class="filter-tab" data-filter="rejected">Rejected</button>
-                    </div>
-                </div>
-            </header>
-            <section class="panel">
-                <div class="panel-header">
-                    <div><h2>Claim Requests</h2><p id="claimsCountLabel">Loading…</p></div>
-                </div>
-                <div id="allClaimsList" class="list-grid"></div>
-            </section>
+    <!-- USERS (with Grant Admin) -->
+    <div id="section-users" class="admin-section hidden">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · Members</p>
+          <h1>Users</h1>
+          <p class="section-note">Manage registered members. Grant or revoke admin privileges.</p>
         </div>
-
-        <div id="section-users" class="admin-section hidden">
-            <header class="page-header">
-                <div>
-                    <p class="section-label">Admin · Members</p>
-                    <h1>Users</h1>
-                    <p class="section-note">All registered members and their activity on the system.</p>
-                </div>
-                <div class="header-actions">
-                    <div class="search-field"><input type="search" id="userSearch" placeholder="Search users…"></div>
-                </div>
-            </header>
-            <section class="panel">
-                <div class="panel-header">
-                    <div><h2>Registered Members</h2><p id="usersCountLabel">Loading…</p></div>
-                </div>
-                <div id="usersList" class="list-grid"></div>
-            </section>
+        <div class="header-actions">
+          <div class="search-field"><input type="search" id="userSearch" placeholder="Search users…"></div>
         </div>
-
-        <div id="section-activity" class="admin-section hidden">
-            <header class="page-header">
-                <div>
-                    <p class="section-label">Admin · Logs</p>
-                    <h1>Activity Log</h1>
-                    <p class="section-note">A chronological record of all system events and admin actions.</p>
-                </div>
-                <div class="header-actions">
-                    <button id="clearActivityBtn" class="button danger sm"><i class="ph ph-trash"></i> Clear Log</button>
-                </div>
-            </header>
-            <section class="panel">
-                <div class="panel-header">
-                    <div><h2>Recent Events</h2><p id="activityCountLabel">Loading…</p></div>
-                </div>
-                <div id="activityList"></div>
-            </section>
+      </header>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Registered Members</h2>
+            <p id="usersCountLabel">Loading…</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:0.78rem;color:var(--text-muted);">
+            <i class="ph ph-shield-star" style="color:var(--accent-light);"></i>
+            Admins can approve posts, manage items &amp; claims
+          </div>
         </div>
+        <div id="usersList" class="list-grid"></div>
+      </section>
+    </div>
 
-    </div></div></div>
+    <!-- ACTIVITY LOG -->
+    <div id="section-activity" class="admin-section hidden">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · Logs</p>
+          <h1>Activity Log</h1>
+          <p class="section-note">A chronological record of all system events and admin actions.</p>
+        </div>
+        <div class="header-actions">
+          <button id="clearActivityBtn" class="button danger sm">
+            <i class="ph ph-trash"></i> Clear Log
+          </button>
+        </div>
+      </header>
+      <section class="panel">
+        <div class="panel-header">
+          <div><h2>Recent Events</h2><p id="activityCountLabel">Loading…</p></div>
+        </div>
+        <div id="activityList"></div>
+      </section>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /layout -->
+</div><!-- /app-shell -->
 
 <!-- Admin Post FAB -->
 <div class="fab-container">
-    <div class="fab-options" id="fabOptions">
-        <a class="fab-option fab-found" href="adminrequestform.html?type=Found" onclick="closeFab()">
-            <div class="fab-option-dot"></div>
-            Found Item
-        </a>
-        <a class="fab-option fab-lost" href="adminrequestform.html?type=Lost" onclick="closeFab()">
-            <div class="fab-option-dot"></div>
-            Lost Item
-        </a>
-        <a class="fab-option" href="#" onclick="document.getElementById('userSelectModal').classList.remove('hidden'); closeFab()">
-            <div class="fab-option-dot" style="background:#4f46e5;"></div>
-            Message User
-        </a>
-    </div>
-    <button class="fab-main" id="fabMain" onclick="toggleFab()" aria-label="Post an item" title="Post an item">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-    </button>
+  <div class="fab-options" id="fabOptions">
+    <a class="fab-option fab-found" href="adminrequestform.html?type=Found" onclick="closeFab()">
+      <div class="fab-option-dot"></div>
+      Found Item
+    </a>
+    <a class="fab-option fab-lost" href="adminrequestform.html?type=Lost" onclick="closeFab()">
+      <div class="fab-option-dot"></div>
+      Lost Item
+    </a>
+    <a class="fab-option" href="#" onclick="document.getElementById('userSelectModal').classList.remove('hidden'); closeFab()">
+      <div class="fab-option-dot" style="background:var(--accent);"></div>
+      Message User
+    </a>
+  </div>
+  <button class="fab-main" id="fabMain" onclick="toggleFab()" aria-label="Post an item" title="Post an item">
+    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
 </div>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">
+        <svg width="22" height="22" viewBox="0 0 80 80" fill="none">
+          <path d="M40 4L72 22V58L40 76L8 58V22Z" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+          <path d="M40 12L64 26V54L40 68L16 54V26Z" fill="white" opacity="0.88"/>
+          <rect x="35" y="22" width="10" height="7" rx="1.5" fill="#05063a"/>
+          <path d="M40 34L40 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round"/>
+          <path d="M29 54L40 34L51 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M34 47L46 47" stroke="#05063a" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+        <span class="footer-name">iAcademy Lost &amp; Found</span>
+      </div>
+      <div class="footer-tagline">Admin Portal · Reuniting the iAcademy community.</div>
+    </div>
+    <div class="footer-links">
+      <a href="#">Terms &amp; Conditions</a>
+      <a href="#">Privacy Policy</a>
+      <a href="index.html">Home</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 iAcademy. All rights reserved. Computing · Business · Design</div>
+</footer>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script src="script.js"></script>
