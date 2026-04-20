@@ -1117,8 +1117,6 @@ function initRequestForm() {
 /* ════════════════════════════════════════════════════════
    ADMIN PAGE
    ════════════════════════════════════════════════════════ */
-   startRealtimeNotifications(user, true);
-
 function initAdminPage() {
     applyTheme();
     const user = ensureLogin("admin");
