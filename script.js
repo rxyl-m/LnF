@@ -749,6 +749,7 @@ function initLogin() {
    MEMBER PAGE
    ════════════════════════════════════════════════════════ */
 let _memberCatFilter = "all";
+startRealtimeNotifications(user, false);
 
 async function initMemberPage() {
     applyTheme();
@@ -1117,6 +1118,8 @@ function initRequestForm() {
 /* ════════════════════════════════════════════════════════
    ADMIN PAGE
    ════════════════════════════════════════════════════════ */
+   startRealtimeNotifications(user, true);
+
 function initAdminPage() {
     applyTheme();
     const user = ensureLogin("admin");
@@ -1934,4 +1937,41 @@ async function renderResolutions() {
         </article>
         `;
     }).join("") : emptyState("No meeting resolutions logged yet.");
+}
+
+/* ══════════════════════════════════════════════════════════
+   GLOBAL REALTIME NOTIFICATIONS
+   ══════════════════════════════════════════════════════════ */
+function startRealtimeNotifications(user, isAdmin) {
+    if (isAdmin) {
+        // ADMIN: Listen for brand new requests submitted by members
+        supabaseClient.channel('admin-global-notifs')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'requests' }, payload => {
+                showToast(`New item requested: ${payload.new.name}`, "info");
+                
+                // If the admin is currently on the dashboard, refresh the lists automatically
+                if (typeof renderAdminDashboard === "function") {
+                    renderAdminDashboard();
+                }
+            })
+            .subscribe();
+    } else {
+        // MEMBER: Listen for status updates (approvals/rejections) to their own requests
+        supabaseClient.channel('member-global-notifs')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'requests' }, payload => {
+                // Only alert the user if it's THEIR request and it's no longer 'pending'
+                if (payload.new.requested_by === user.email && payload.new.status !== 'pending') {
+                    const isApproved = payload.new.status === 'approve' || payload.new.status === 'Approved';
+                    const actionWord = isApproved ? 'APPROVED' : 'REJECTED';
+                    
+                    showToast(`Your request for "${payload.new.name}" was ${actionWord}!`, isApproved ? "success" : "error");
+                    
+                    // If the member is currently on their dashboard, refresh the lists
+                    if (typeof initMemberPage === "function") {
+                        initMemberPage();
+                    }
+                }
+            })
+            .subscribe();
+    }
 }

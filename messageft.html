@@ -181,7 +181,7 @@ async function initChat() {
 
     // Combine DB listening and Typing indicator into ONE reliable channel
     chatChannel = supabaseClient.channel('chat-room', {
-        config: { broadcast: { ack: false } } // CRITICAL: Enables typing indicators
+        config: { broadcast: { ack: false } } 
     });
 
     chatChannel
@@ -192,6 +192,7 @@ async function initChat() {
         }, payload => {
             const newMsg = payload.new;
 
+            // 1. Double check: Is this message meant for THIS chat room?
             const isParticipant = 
                 (newMsg.sender_email === user.email && newMsg.receiver_email === targetEmail) || 
                 (newMsg.sender_email === targetEmail && newMsg.receiver_email === user.email);
@@ -199,26 +200,27 @@ async function initChat() {
             if (isParticipant) {
                 const isMe = newMsg.sender_email === user.email;
                 
-                // MULTI-DEVICE SYNC FIX: 
-                // Check what the very last bubble currently on the screen says
+                // 2. Grab the text of the very last bubble currently visible on the screen
                 const allBubbles = chatBox.getElementsByClassName('bubble');
-                const lastBubble = allBubbles.length > 0 ? allBubbles[allBubbles.length - 1] : null;
+                const lastBubbleText = allBubbles.length > 0 ? allBubbles[allBubbles.length - 1].textContent : "";
 
-                // If it's from the OTHER person, OR if I sent it from my OTHER device (so it's not on this screen yet)
-                if (!isMe || !lastBubble || lastBubble.textContent !== newMsg.content) {
+                // 3. Render it IF it came from the other person, OR if I sent it from another device and it isn't on my screen yet.
+                if (!isMe || lastBubbleText !== newMsg.content) {
                     renderBubble(newMsg.content, isMe);
                 }
             }
         })
         .on('broadcast', { event: 'typing' }, payload => {
-            // TYPING INDICATOR FIX: Listen on the exact same connection
+            // Typing indicator logic
             const indicator = document.getElementById('typingIndicator');
             if (payload.payload.email === targetEmail && indicator) {
                 indicator.textContent = payload.payload.isTyping ? `${targetName} is typing...` : '';
             }
         })
-        .subscribe();
-}
+        .subscribe((status) => {
+            // Optional: Logs to your browser console so you can verify it connected
+            console.log("Chat Realtime Status:", status); 
+        });
 
 // 5. Send Message (Instant feel)
 document.getElementById('chatForm').onsubmit = async (e) => {
