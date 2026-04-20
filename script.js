@@ -682,34 +682,32 @@ async function initMemberPage() {
     if (!user) return;
 
     // --- NEW: Active Chat Visibility Logic ---
-async function updateChatLinkVisibility(user) {
-    const chatLink = document.getElementById("activeChatLink");
-    if (!chatLink) return;
+    async function updateChatLinkVisibility(user) {
+        const chatLink = document.getElementById("activeChatLink");
+        if (!chatLink) return;
 
-    try {
-        // 1. Check for approved chat requests
-        const { data: requests } = await supabaseClient
-            .from('chat_requests')
-            .select('status')
-            .eq('user_email', user.email)
-            .eq('status', 'approved');
+        try {
+            // 1. Check for approved chat requests
+            const { data: requests } = await supabaseClient
+                .from('chat_requests')
+                .select('status')
+                .eq('user_email', user.email)
+                .eq('status', 'approved');
 
-        // 2. Check for ANY message history with admin
-        const messages = await dbGetMessages(user.email, "admin@admin.com");
+            // 2. Check for ANY message history with admin
+            const messages = await dbGetMessages(user.email, "admin@admin.com");
 
-        // Show if there is an approved request OR existing messages
-        if ((requests && requests.length > 0) || (messages && messages.length > 0)) {
-            chatLink.classList.remove("hidden");
-        } else {
-            chatLink.classList.add("hidden");
+            // Show if there is an approved request OR existing messages
+            if ((requests && requests.length > 0) || (messages && messages.length > 0)) {
+                chatLink.classList.remove("hidden");
+            } else {
+                chatLink.classList.add("hidden");
+            }
+        } catch (e) {
+            console.error("Error checking chat visibility:", e);
         }
-    } catch (e) {
-        console.error("Error checking chat visibility:", e);
     }
-}
-
-// Call this inside initMemberPage after you've confirmed the user is logged in
-// updateChatLinkVisibility(user);
+    updateChatLinkVisibility(user);
     // -----------------------------------------
 
     const nameEl   = document.getElementById("memberName");
