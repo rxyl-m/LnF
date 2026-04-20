@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Chat — Lost & Found</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .chat-container { display: flex; flex-direction: column; height: 75vh; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; }
+        .chat-header { padding: 15px 20px; background: var(--bg-raised); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .bubble { max-width: 70%; padding: 10px 14px; border-radius: 18px; font-size: 0.9rem; }
+        .bubble.admin { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+        .bubble.member { align-self: flex-start; background: var(--bg-raised); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+        .chat-input-area { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--bg-raised); }
+        .chat-input-area input { flex: 1; border-radius: var(--radius-full); }
+    </style>
+</head>
+<body class="page">
+<div class="app-shell" style="max-width: 800px; margin: 0 auto; padding-top: 40px;">
+    
+    <div class="hero-eyebrow" style="margin-bottom:14px;">
+        ← <a href="#" id="backBtn" style="color:inherit;margin-left:5px;">Back to Dashboard</a>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <div>
+                <h2 style="font-size: 1.1rem; font-family: var(--font-display);" id="chatUserName">Loading User...</h2>
+                <p style="font-size: 0.75rem; color: var(--text-secondary);" id="chatUserEmail"></p>
+            </div>
+            <button class="button outline sm" onclick="document.getElementById('resolutionModal').classList.remove('hidden')">
+                <i class="ph ph-handshake"></i> Confirm Resolution
+            </button>
+        </div>
+        
+        <div class="chat-box" id="chatBox">
+            </div>
+
+        <form class="chat-input-area" id="chatForm">
+            <input type="text" id="chatMsgInput" placeholder="Type a message..." required autocomplete="off">
+            <button type="submit" class="button primary" style="border-radius: var(--radius-full); width: 45px; padding: 0;">
+                <i class="ph ph-paper-plane-right"></i>
+            </button>
+        </form>
+    </div>
+
+    <div id="resolutionModal" class="modal hidden" aria-hidden="true">
+        <div class="modal-backdrop" onclick="closeModal(this.parentElement)"></div>
+        <div class="modal-panel" style="max-width:400px;">
+            <div class="modal-header">
+                <div><h2>Set Meeting / Resolution</h2><p>Log the final confirmation date and place.</p></div>
+                <button type="button" onclick="closeModal(document.getElementById('resolutionModal'))" class="button secondary sm"><i class="ph ph-x"></i></button>
+            </div>
+            <form id="resolutionForm">
+                <label>Action Type
+                    <select id="resAction">
+                        <option value="Returning Lost Item">Returning Lost Item</option>
+                        <option value="Claiming Found Item">Claiming Found Item</option>
+                    </select>
+                </label>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
+                    <label>Date<input type="date" id="resDate" required></label>
+                    <label>Time<input type="time" id="resTime" required></label>
+                </div>
+                <label style="margin-top:10px;">Meeting Location
+                    <input type="text" id="resLocation" placeholder="e.g., Guidance Office, Lobby" required>
+                </label>
+                <button type="submit" class="button primary fullwidth" style="margin-top:20px;">Confirm & Log to Recent</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+<script>
+    // 1. Identify who is looking at the screen
+    const user = getCurrentUser();
+    if (!user) window.location.href = "login.html";
+    
+    const isAdmin = user.role === "admin";
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // 2. Set up the logic: If Admin, talk to URL target. If Member, talk to Admin.
+    const targetEmail = isAdmin ? urlParams.get('email') : "admin@admin.com";
+    const targetName  = isAdmin ? urlParams.get('name')  : "System Admin";
+    
+    document.getElementById('chatUserName').textContent = targetName;
+    document.getElementById('chatUserEmail').textContent = targetEmail;
+    document.getElementById('backBtn').href = isAdmin ? "adminpage.html" : "memberpage.html";
+
+    // Hide the "Confirm Resolution" button if a member is looking at this page
+    if (!isAdmin) {
+        document.querySelector('.chat-header .button').style.display = 'none';
+    }
+
+    const chatBox = document.getElementById("chatBox");
+
+    // 3. Render Bubbles correctly (My texts on the right, their texts on the left)
+    function renderBubble(content, isMe) {
+        const div = document.createElement("div");
+        div.className = `bubble ${isMe ? 'admin' : 'member'}`; // 'admin' class aligns to the right
+        div.textContent = content;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // 4. Load History & Listen Live
+    async function initChat() {
+        const history = await dbGetMessages(user.email, targetEmail);
+        chatBox.innerHTML = "";
+        history.forEach(msg => {
+            const isMe = msg.sender_email === user.email;
+            renderBubble(msg.content, isMe);
+        });
+
+        subscribeToMessages(user.email, (newMsg) => {
+            // If the incoming message is from the person we are talking to, show it on the left
+            if (newMsg.sender_email === targetEmail) {
+                renderBubble(newMsg.content, false);
+            }
+        });
+    }
+    initChat();
+
+    // 5. Send Message
+    document.getElementById('chatForm').onsubmit = async (e) => {
+        e.preventDefault(); 
+        const input = document.getElementById('chatMsgInput');
+        const content = input.value.trim();
+        if (!content) return;
+        
+        renderBubble(content, true); // Show on my side instantly
+        input.value = ""; 
+        
+        await dbSendMessage(user.email, targetEmail, content);
+    };
+
+    // 6. Handle Admin Resolution (Only admins can trigger this)
+    const resForm = document.getElementById('resolutionForm');
+    if (resForm) {
+        resForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const res = {
+                user_email: targetEmail,
+                action_type: document.getElementById('resAction').value,
+                meeting_date: document.getElementById('resDate').value,
+                meeting_time: document.getElementById('resTime').value,
+                location: document.getElementById('resLocation').value
+            };
+            await supabaseClient.from('resolutions').insert([res]);
+            showToast("Resolution logged to Recent Conversations!", "success");
+            
+            // Wait 2 seconds so the admin can see the success toast before redirecting
+            setTimeout(() => {
+                window.location.href = "adminpage.html";
+            }, 2000);
+        };
+    }
+</script>
+</body>
+</html>

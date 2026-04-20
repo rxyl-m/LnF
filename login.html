@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — Lost & Found</title>
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body class="page page-login" data-page="login">
+<div class="app-shell auth-shell">
+    <div class="auth-wrapper">
+        <header>
+            <div class="hero-eyebrow" style="display:inline-flex;margin-bottom:16px;">✦ iAcademy</div>
+            <h1 id="authHeading">Welcome back</h1>
+            <p id="authSubheading">Sign in to access the Lost &amp; Found system.</p>
+        </header>
+
+        <!-- Tab switcher -->
+        <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="signin">Sign In</button>
+            <button class="auth-tab" data-tab="signup">Sign Up</button>
+        </div>
+
+        <!-- Forms Container -->
+        <div class="form-container">
+            <!-- Sign In Form -->
+            <form id="loginForm" class="form-card auth-form" data-form="signin">
+            <label>
+                Email address
+                <input type="email" id="email" required placeholder="you@example.com" autocomplete="email">
+            </label>
+            <label>
+                Password
+                <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
+            </label>
+            <div class="form-actions">
+                <button type="submit" class="button primary" style="flex:1;">Sign In</button>
+                <a class="button secondary" href="index.html">Back</a>
+            </div>
+            <div class="hint">
+                Admin credentials: <strong>admin@admin.com</strong> / <strong>admin123</strong>
+            </div>
+            <p id="loginError" aria-live="polite"></p>
+        </form>
+
+        <!-- Sign Up Form -->
+        <form id="signupForm" class="form-card auth-form hidden" data-form="signup">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <label style="margin-bottom:0;">
+                    First name
+                    <input type="text" id="signupFirstName" required placeholder="Jane">
+                </label>
+                <label style="margin-bottom:0;">
+                    Last name
+                    <input type="text" id="signupLastName" required placeholder="Doe">
+                </label>
+            </div>
+            <label style="margin-top:16px;">
+                Email address
+                <input type="email" id="signupEmail" required placeholder="you@example.com" autocomplete="email">
+            </label>
+            <label>
+                Password
+                <input type="password" id="signupPassword" required placeholder="At least 6 characters" autocomplete="new-password">
+            </label>
+            <label>
+                Confirm password
+                <input type="password" id="signupConfirm" required placeholder="Repeat your password" autocomplete="new-password">
+            </label>
+            <div class="form-actions">
+                <button type="submit" class="button primary" style="flex:1;">Sign Up</button>
+                <a class="button secondary" href="index.html">Back</a>
+            </div>
+            <p id="signupError" aria-live="polite"></p>
+            <p id="signupSuccess" aria-live="polite"></p>
+        </form>
+        </div>
+
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

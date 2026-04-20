@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Item — Admin · Lost &amp; Found</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body class="page page-request" data-page="adminrequest">
+<div class="app-shell auth-shell">
+    <div class="auth-wrapper" style="max-width:540px;">
+        <header>
+            <div class="hero-eyebrow" style="display:inline-flex;margin-bottom:14px;">
+                ← <a href="adminpage.html" style="color:inherit;margin-left:5px;">Back to Dashboard</a>
+            </div>
+            <h1>Post Item Directly</h1>
+            <p>Post a lost or found item on behalf of someone reporting in person — it goes live immediately.</p>
+        </header>
+
+        <!-- Lost / Found type selector -->
+        <div class="type-selector">
+            <button type="button" class="type-choice" id="typeLost" data-type="Lost" onclick="selectType('Lost')">
+                <div class="type-dot type-dot-lost"></div>
+                Lost Item
+            </button>
+            <button type="button" class="type-choice" id="typeFound" data-type="Found" onclick="selectType('Found')">
+                <div class="type-dot type-dot-found"></div>
+                Found Item
+            </button>
+        </div>
+        <input type="hidden" id="category">
+
+        <form id="requestForm" class="form-card">
+
+            <!-- Item Type Grid -->
+            <span class="section-label-sm">What type of item?</span>
+            <div class="item-type-grid" id="itemTypeGrid">
+                <button type="button" class="type-tile" data-type="Electronics">
+                    <span class="type-tile-icon">💻</span>Electronics
+                </button>
+                <button type="button" class="type-tile" data-type="ID / Cards">
+                    <span class="type-tile-icon">🪪</span>ID / Cards
+                </button>
+                <button type="button" class="type-tile" data-type="Clothing">
+                    <span class="type-tile-icon">👕</span>Clothing
+                </button>
+                <button type="button" class="type-tile" data-type="Keys">
+                    <span class="type-tile-icon">🔑</span>Keys
+                </button>
+                <button type="button" class="type-tile" data-type="Bag">
+                    <span class="type-tile-icon">🎒</span>Bag
+                </button>
+                <button type="button" class="type-tile" data-type="Books">
+                    <span class="type-tile-icon">📚</span>Books
+                </button>
+                <button type="button" class="type-tile" data-type="Wallet">
+                    <span class="type-tile-icon">💰</span>Wallet
+                </button>
+                <button type="button" class="type-tile" data-type="Jewelry">
+                    <span class="type-tile-icon">💍</span>Jewelry
+                </button>
+                <button type="button" class="type-tile" data-type="Other">
+                    <span class="type-tile-icon">…</span>Other
+                </button>
+            </div>
+            <input type="hidden" id="itemType">
+
+            <!-- Shown only when "Other" is selected -->
+            <div id="otherTypeWrap" class="hidden" style="margin:10px 0 4px;">
+                <label>
+                    Describe the item type
+                    <input type="text" id="otherTypeText" placeholder="e.g. umbrella, glasses, water bottle…">
+                </label>
+            </div>
+
+            <!-- Rest of form -->
+            <label style="margin-top:18px;">
+                Item Name
+                <input type="text" id="itemName" required placeholder="e.g. Black Wallet, Samsung AirPods…">
+            </label>
+            <label>
+                Description
+                <textarea id="description" rows="3" required placeholder="Color, brand, unique marks, contents…"></textarea>
+            </label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <label style="margin-bottom:0;">
+                    Location
+                    <input type="text" id="location" required placeholder="Building, room, floor…">
+                </label>
+                <label style="margin-bottom:0;">
+                    Date
+                    <input type="date" id="dateFound" required>
+                </label>
+            </div>
+            <label style="margin-top:14px;">
+                Reporter's Contact
+                <input type="text" id="contactInfo" required placeholder="Reporter's email or phone number">
+            </label>
+            <div class="form-actions" style="margin-top:14px;">
+                <button type="submit" class="button primary" style="flex:1;">
+                    <i class="ph ph-paper-plane-tilt"></i> Post Item
+                </button>
+                <a class="button secondary" href="adminpage.html">Cancel</a>
+            </div>
+            <p id="requestSuccess" aria-live="polite"></p>
+        </form>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

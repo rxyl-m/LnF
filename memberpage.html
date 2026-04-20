@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Dashboard — Lost & Found</title>
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body class="page page-member" data-page="member">
+<div class="app-shell">
+<div class="layout">
+
+    <div class="mobile-header">
+        <div class="brand-panel" style="margin-bottom:0; padding:0;">
+            <div class="brand-mark">Å</div>
+            <div>
+                <p class="brand-title">Lost &amp; Found</p>
+                <span class="brand-subtitle">iAcademy</span>
+            </div>
+        </div>
+        <button class="icon-button" id="mobileMenuBtn" aria-label="Toggle Menu">
+            <i class="ph ph-list" id="menuIcon"></i>
+        </button>
+    </div>
+
+    <aside class="sidebar" id="appSidebar">
+        <div class="brand-panel desktop-brand">
+            <div class="brand-mark">Å</div>
+            <div>
+                <p class="brand-title">Lost &amp; Found</p>
+                <span class="brand-subtitle">iAcademy</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="nav-link active" data-section="items" href="#">
+                <span class="nav-link-icon"><i class="ph ph-squares-four"></i></span> Available Items
+                <span id="itemsBadge" class="badge-inline hidden">0</span>
+            </a>
+            <a class="nav-link" data-section="claims" href="#">
+                <span class="nav-link-icon"><i class="ph ph-hand-grabbing"></i></span> My Claims
+                <span id="claimsBadge" class="badge-inline hidden">0</span>
+            </a>
+            <a class="nav-link" data-section="requests" href="#">
+                <span class="nav-link-icon"><i class="ph ph-file-text"></i></span> My Requests
+            </a>
+            <a class="nav-link" href="messageft.html">
+                <span class="nav-link-icon"><i class="ph ph-chat-circle-dots"></i></span> Active Chat
+            </a>
+            <a class="nav-link" data-section="conversations" href="#">
+                <span class="nav-link-icon"><i class="ph ph-calendar-check"></i></span> Meetings Log
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="profile-card">
+                <div class="profile-info">
+                    <div class="profile-avatar" id="memberAvatar">M</div>
+                    <div>
+                        <p class="profile-name" id="memberName">Member</p>
+                        <p class="profile-role">Student</p>
+                    </div>
+                </div>
+                <button id="logoutBtn" class="logout-icon-btn" aria-label="Sign Out" title="Sign Out">
+                    <i class="ph ph-sign-out"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="content-area">
+        <div id="userSelectModal" class="modal hidden" aria-hidden="true">
+            <div class="modal-backdrop" onclick="closeModal(this.parentElement)"></div>
+            <div class="modal-panel" style="max-width:400px;">
+                <div class="modal-header">
+                    <div><h2>Select User</h2><p>Choose a member to message.</p></div>
+                    <button onclick="closeModal(document.getElementById('userSelectModal'))" class="button secondary sm"><i class="ph ph-x"></i></button>
+                </div>
+                <div class="search-field" style="margin-bottom:15px;"><input type="search" id="userChatSearch" placeholder="Search by name or email..."></div>
+                <div id="userChatList" class="list-grid" style="max-height:300px; overflow-y:auto;">
+                    </div>
+            </div>
+        </div>
+
+        <div id="section-conversations" class="admin-section hidden">
+            <header class="page-header">
+                <div>
+                    <p class="section-label">Admin · Logs</p>
+                    <h1>Recent Conversations</h1>
+                    <p class="section-note">Confirmed claims, returns, and scheduled meetings from chats.</p>
+                </div>
+            </header>
+            <section class="panel">
+                <div id="resolutionsList" class="list-grid"></div>
+            </section>
+        </div>
+        <p id="memberNotice" class="success-message visually-hidden" aria-live="polite"
+           style="margin:0;border-radius:var(--radius-lg);padding:11px 18px;"></p>
+
+        <div id="section-items" class="admin-section">
+            <header class="page-header">
+                <div>
+                    <p class="section-label">Member · Browse</p>
+                    <h1>Available Items</h1>
+                    <p class="section-note">Search or filter by category to find what you're looking for.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-field">
+                        <input type="search" id="memberSearch" placeholder="Search items…" oninput="filterMemberItems()">
+                    </div>
+                </div>
+            </header>
+
+            <div class="panel" style="padding:16px 18px;">
+                <span class="section-label-sm">Filter by category</span>
+                <div class="cat-filter-row" id="catFilter">
+                    <button class="cat-pill active" data-cat="all">All</button>
+                    <button class="cat-pill" data-cat="Electronics"><i class="ph ph-laptop"></i> Electronics</button>
+                    <button class="cat-pill" data-cat="ID / Cards"><i class="ph ph-identification-card"></i> ID / Cards</button>
+                    <button class="cat-pill" data-cat="Clothing"><i class="ph ph-t-shirt"></i> Clothing</button>
+                    <button class="cat-pill" data-cat="Keys"><i class="ph ph-key"></i> Keys</button>
+                    <button class="cat-pill" data-cat="Bag"><i class="ph ph-backpack"></i> Bag</button>
+                    <button class="cat-pill" data-cat="Books"><i class="ph ph-books"></i> Books</button>
+                    <button class="cat-pill" data-cat="Wallet"><i class="ph ph-wallet"></i> Wallet</button>
+                    <button class="cat-pill" data-cat="Jewelry"><i class="ph ph-gem-profile"></i> Jewelry</button>
+                    <button class="cat-pill" data-cat="Other"><i class="ph ph-dots-three"></i> Other</button>
+                </div>
+                <div id="otherFilterWrap" class="other-filter-input hidden">
+                    <input type="text" id="otherFilterText" placeholder="What exactly are you looking for? e.g. umbrella, glasses…" oninput="filterMemberItems()">
+                </div>
+            </div>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Items Board</h2>
+                        <p id="itemsCountLabel">Loading…</p>
+                    </div>
+                </div>
+                <div id="itemsList" class="list-grid"></div>
+            </section>
+        </div>
+
+        <div id="section-claims" class="admin-section hidden">
+            <header class="page-header">
+                <div>
+                    <p class="section-label">Member · Claims</p>
+                    <h1>My Claims</h1>
+                    <p class="section-note">Track the status of items you've submitted claim requests for.</p>
+                </div>
+            </header>
+            <section class="panel">
+                <div class="panel-header">
+                    <div><h2>Claim History</h2><p>Items you have requested to claim.</p></div>
+                </div>
+                <div id="myClaims" class="list-grid"></div>
+            </section>
+        </div>
+
+        <div id="section-requests" class="admin-section hidden">
+            <header class="page-header">
+                <div>
+                    <p class="section-label">Member · Requests</p>
+                    <h1>My Requests</h1>
+                    <p class="section-note">Post requests you have submitted to admins for approval.</p>
+                </div>
+            </header>
+            <section class="panel">
+                <div class="panel-header">
+                    <div><h2>Request History</h2><p>All your submitted item post requests.</p></div>
+                </div>
+                <div id="myRequests" class="list-grid"></div>
+            </section>
+        </div>
+
+    </div></div></div>
+    
+    <div id="chatRequestModal" class="modal hidden" aria-hidden="true">
+        <div class="modal-backdrop" onclick="closeModal(this.parentElement)"></div>
+        <div class="modal-panel" style="max-width:400px;">
+            <div class="modal-header">
+                <div><h2>Request Chat</h2><p>Provide a reason for contacting the admin.</p></div>
+                <button onclick="closeModal(document.getElementById('chatRequestModal'))" class="button secondary sm"><i class="ph ph-x"></i></button>
+            </div>
+            <form id="chatRequestForm">
+                <label>Reason for chat
+                    <textarea id="chatReason" rows="3" required placeholder="e.g., I have proof this wallet is mine..."></textarea>
+                </label>
+                <button type="submit" class="button primary fullwidth" style="margin-top:14px;">Submit Request</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="fab-container">
+    <div class="fab-options" id="fabOptions">
+        <a class="fab-option fab-found" href="requestform.html?type=Found" onclick="closeFab()">
+            <div class="fab-option-dot"></div>
+            I Found Something
+        </a>
+        <a class="fab-option fab-lost" href="requestform.html?type=Lost" onclick="closeFab()">
+            <div class="fab-option-dot"></div>
+            I Lost Something
+        </a>
+        <a class="fab-option" href="#" onclick="openChatRequestModal(); closeFab()">
+            <div class="fab-option-dot" style="background:#4f46e5;"></div>
+            Request Admin Chat
+        </a>
+    </div>
+    <button class="fab-main" id="fabMain" onclick="toggleFab()" aria-label="Report an item" title="Report an item">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+    </button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
