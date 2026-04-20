@@ -150,8 +150,6 @@ const typingIndicator = document.getElementById('typingIndicator');
 // 3. Render Bubbles (Sent = Right, Received = Left)
 function renderBubble(content, isMe) {
     const div = document.createElement("div");
-    // In your CSS, .admin is aligned right, .member is aligned left
-    // So 'isMe' always uses 'admin' to stay on the right side
     div.className = `bubble ${isMe ? 'admin' : 'member'}`;
     div.textContent = content;
     
@@ -159,7 +157,14 @@ function renderBubble(content, isMe) {
     const now = new Date();
     div.setAttribute('data-time', now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0'));
     
-    chatBox.appendChild(div);
+    // NEW: Insert above the typing indicator instead of strictly at the bottom
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) {
+        chatBox.insertBefore(div, indicator);
+    } else {
+        chatBox.appendChild(div);
+    }
+    
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
