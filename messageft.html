@@ -34,7 +34,7 @@
                 <button class="button secondary sm theme-toggle-btn" title="Toggle Theme">
                     <i class="ph ph-moon theme-icon"></i>
                 </button>
-                <button class="button outline sm" onclick="document.getElementById('resolutionModal').classList.remove('hidden')">
+                <button id="confirmResBtn" class="button outline sm" onclick="document.getElementById('resolutionModal').classList.remove('hidden')">
                     <i class="ph ph-handshake"></i> Confirm Resolution
                 </button>
             </div>
@@ -100,7 +100,8 @@
 
     // Hide the "Confirm Resolution" button if a member is looking at this page
     if (!isAdmin) {
-        document.querySelector('.chat-header .button').style.display = 'none';
+        const resBtn = document.getElementById('confirmResBtn');
+        if (resBtn) resBtn.style.display = 'none';
         
         // SECURITY CHECK: If they type the URL manually but have no approved chat, kick them out!
         supabaseClient.from('chat_requests').select('*').eq('user_email', user.email).eq('status', 'approved').then(({data}) => {

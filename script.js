@@ -333,11 +333,12 @@ async function dbSendMessage(sender, receiver, content) {
     if (error) throw error;
 }
 async function dbDeleteMessages(userEmail1, userEmail2) {
-    const { error } = await supabaseClient
-        .from("messages")
-        .delete()
-        .or(`and(sender_email.eq.${userEmail1},receiver_email.eq.${userEmail2}),and(sender_email.eq.${userEmail2},receiver_email.eq.${userEmail1})`);
-    if (error) throw error;
+    // Safely delete messages in both directions using explicit matching
+    const { error: err1 } = await supabaseClient.from("messages").delete().match({ sender_email: userEmail1, receiver_email: userEmail2 });
+    if (err1) throw err1;
+    
+    const { error: err2 } = await supabaseClient.from("messages").delete().match({ sender_email: userEmail2, receiver_email: userEmail1 });
+    if (err2) throw err2;
 }
 function subscribeToMessages(currentUserEmail, onNewMessage) {
     supabaseClient
