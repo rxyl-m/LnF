@@ -462,12 +462,18 @@ textarea { resize: vertical; min-height: 100px; }
    NOTIFICATIONS PANEL
    ══════════════════════════════════════════════════════════ */
 .notif-dropdown {
-  position: absolute; top: calc(100% + 10px); right: 0;
-  width: 320px; background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
-  z-index: 200; overflow: hidden;
-  animation: scaleIn 0.2s ease;
+    position: absolute; 
+    top: 50px; /* Use a fixed pixel distance from the top instead of a percentage */
+    right: 0; 
+    width: 320px; 
+    max-width: calc(100vw - 40px); /* Prevents it from going off-screen on mobile */
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg); 
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8); /* Stronger shadow to pop off the background */
+    z-index: 9999; /* Maxed out z-index so nothing overlaps it */
+    overflow: hidden;
+    animation: scaleIn 0.2s ease;
 }
 .notif-header {
   padding: 14px 18px; border-bottom: 1px solid var(--border);
@@ -486,7 +492,12 @@ textarea { resize: vertical; min-height: 100px; }
 .notif-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 6px; }
 .notif-text { font-size: 0.82rem; color: var(--text-primary); line-height: 1.5; }
 .notif-time { font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 3px; }
-.notif-bell-wrap { position: relative; }
+.notif-bell-wrap { 
+    position: relative; 
+    display: flex; /* Changed to flex so it holds the button's size properly */
+    align-items: center;
+    justify-content: center;
+}
 
 /* ══════════════════════════════════════════════════════════
    HOME PAGE
@@ -555,6 +566,24 @@ textarea { resize: vertical; min-height: 100px; }
 .modal-header p { color: var(--text-secondary); font-size: 0.82rem; margin-top: 3px; }
 .modal-panel section { margin-bottom: 22px; }
 .modal-panel section h3 { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; font-family: var(--font-mono); }
+/* Custom Scrollbar specifically for the rounded modal */
+.modal-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-panel::-webkit-scrollbar-track {
+    background: transparent; /* Removes the boxy background track */
+    margin: 26px 0; /* Pushes the scrollbar away from the top and bottom corners! */
+}
+
+.modal-panel::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 10px;
+}
+
+.modal-panel::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
 
 /* ══════════════════════════════════════════════════════════
    EMPTY STATE

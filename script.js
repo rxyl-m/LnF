@@ -196,9 +196,12 @@ function injectTTSButtons() {
 /* ════════════════════════════════════════════════════════
    DB NORMALIZERS
    ════════════════════════════════════════════════════════ */
-const toItem    = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, status:r.status });
-const toRequest = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, requestedBy:r.requested_by, status:r.status });
-const toClaim   = r => ({ id:r.id, itemId:r.item_id, name:r.name, category:r.category, itemType:r.item_type, description:r.description, location:r.location, date:r.date, contact:r.contact, requestedBy:r.requested_by, status:r.status });
+/* ════════════════════════════════════════════════════════
+   DB NORMALIZERS
+   ════════════════════════════════════════════════════════ */
+const toItem    = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, status:r.status, imageUrl: r.image_url });
+const toRequest = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, requestedBy:r.requested_by, status:r.status, imageUrl: r.image_url });
+const toClaim   = r => ({ id:r.id, itemId:r.item_id, name:r.name, category:r.category, itemType:r.item_type, description:r.description, location:r.location, date:r.date, contact:r.contact, requestedBy:r.requested_by, status:r.status, imageUrl: r.image_url });
 const toUser    = r => ({ id:r.id, email:r.email, name:r.name, role:r.role, password:r.password, joinedAt:r.created_at });
 
 /* ════════════════════════════════════════════════════════
@@ -213,7 +216,8 @@ async function dbInsertItem(item) {
     const { error } = await supabaseClient.from("items").insert([{
         id: item.id, name: item.name, category: item.category, item_type: item.itemType,
         description: item.description, location: item.location, date: item.date,
-        contact: item.contact, status: "Approved"
+        contact: item.contact, status: "Approved",
+        image_url: item.imageUrl // <--- ADD THIS LINE
     }]);
     if (error) throw error;
 }
@@ -248,7 +252,8 @@ async function dbInsertRequest(req) {
     const { error } = await supabaseClient.from("requests").insert([{
         id: req.id, name: req.name, category: req.category, item_type: req.itemType,
         description: req.description, location: req.location, date: req.date,
-        contact: req.contact, requested_by: req.requestedBy, status: "pending"
+        contact: req.contact, requested_by: req.requestedBy, status: "pending",
+        image_url: req.image_url // ADD THIS
     }]);
     if (error) throw error;
 }
@@ -471,6 +476,12 @@ function showConfirm(title, message, confirmText, isDanger, onConfirm) {
    CARD RENDERERS
    ════════════════════════════════════════════════════════ */
 function renderItemCard(item, actionsHtml = "") {
+    // If the item has an image, render an <img> tag, otherwise render nothing
+    const imgHtml = item.imageUrl ? 
+        `<div style="margin: 10px 0; border-radius: var(--radius); overflow: hidden; height: 180px; background: var(--bg-surface);">
+            <img src="${esc(item.imageUrl)}" alt="${esc(item.name)}" style="width: 100%; height: 100%; object-fit: cover;">
+         </div>` : '';
+
     return `
     <article class="card item-card" data-item-type="${esc(item.itemType||"")}" data-name="${esc((item.name||"").toLowerCase())}">
         <div class="item-header">
@@ -478,7 +489,7 @@ function renderItemCard(item, actionsHtml = "") {
             ${itemTypeTag(item.itemType)}
             ${statusTag(item.status || "Approved")}
         </div>
-        <h3>${esc(item.name)}</h3>
+        ${imgHtml} <h3>${esc(item.name)}</h3>
         <p>${esc(item.description)}</p>
         <dl>
             <div><dt>Location</dt><dd>${esc(item.location)}</dd></div>
@@ -489,20 +500,25 @@ function renderItemCard(item, actionsHtml = "") {
     </article>`;
 }
 function renderRequestCard(request, actionsHtml = "") {
+    // If the request has an image, render an <img> tag, otherwise render nothing
+    const imgHtml = request.imageUrl ? 
+        `<div style="margin: 10px 0; border-radius: var(--radius); overflow: hidden; height: 180px; background: var(--bg-surface);">
+            <img src="${esc(request.imageUrl)}" alt="${esc(request.name)}" style="width: 100%; height: 100%; object-fit: cover;">
+         </div>` : '';
+
     return `
-    <article class="card item-card">
+    <article class="card item-card" data-item-type="${esc(request.itemType||"")}" data-name="${esc((request.name||"").toLowerCase())}">
         <div class="item-header">
             ${categoryTag(request.category)}
             ${itemTypeTag(request.itemType)}
-            ${statusTag(request.status)}
+            ${statusTag(request.status || "Approved")}
         </div>
-        <h3>${esc(request.name)}</h3>
+        ${imgHtml} <h3>${esc(request.name)}</h3>
         <p>${esc(request.description)}</p>
         <dl>
             <div><dt>Location</dt><dd>${esc(request.location)}</dd></div>
             <div><dt>Date</dt><dd>${esc(request.date)}</dd></div>
             <div><dt>Contact</dt><dd>${esc(request.contact)}</dd></div>
-            <div><dt>Requested by</dt><dd>${esc(request.requestedBy)}</dd></div>
         </dl>
         ${actionsHtml}
     </article>`;
@@ -1005,30 +1021,61 @@ function initRequestForm() {
         const location    = document.getElementById("location").value.trim();
         const dateFound   = document.getElementById("dateFound").value;
         const contactInfo = document.getElementById("contactInfo").value.trim();
+        
+        // Get the file
+        const fileInput = document.getElementById("itemImage");
+        const file = fileInput ? fileInput.files[0] : null;
+
         if (!itemName || !description || !location || !dateFound || !contactInfo) {
-            showMsg(msgEl, "Please complete every field before submitting.", "error"); return;
+            showMsg(msgEl, "Please complete every text field before submitting.", "error"); return;
         }
 
-        showConfirm("Submit Request", `Submit this ${category} item request? An admin will review it before it goes live.`, "Submit", false, async () => {
+        showConfirm("Submit Request", `Submit this ${category} item request?`, "Submit", false, async () => {
             const submitBtn = form.querySelector("button[type=submit]");
-            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Submitting…"; }
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Uploading & Submitting…"; }
+            
             try {
+                let imageUrl = null;
+
+                // 1. Upload the image if one was selected
+                if (file) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+                    const filePath = `${user.email}/${fileName}`;
+
+                    // Upload to Supabase Storage
+                    const { error: uploadError } = await supabaseClient.storage
+                        .from('item-images')
+                        .upload(filePath, file);
+
+                    if (uploadError) throw uploadError;
+
+                    // Get the public URL
+                    const { data: publicUrlData } = supabaseClient.storage
+                        .from('item-images')
+                        .getPublicUrl(filePath);
+
+                    imageUrl = publicUrlData.publicUrl;
+                }
+
+                // 2. Insert into database (make sure to update dbInsertRequest to accept image_url)
                 await dbInsertRequest({
                     id: `req-${Date.now()}`,
                     name: itemName, category, itemType, description, location,
                     date: dateFound, contact: contactInfo,
-                    requestedBy: user.email, status: "pending"
+                    requestedBy: user.email, status: "pending",
+                    image_url: imageUrl // NEW FIELD
                 });
-                logActivity("post_request", `${user.email} submitted a ${category} request for "${itemName}" (${itemType})`);
-                addNotification(`Your request for "${itemName}" has been submitted and is pending admin approval.`, 'info');
+
+                logActivity("post_request", `${user.email} submitted a ${category} request for "${itemName}"`);
+                showMsg(msgEl, "Request submitted! An admin will review it shortly.", "success");
+                
+                // Reset form
                 isFormDirty = false;
                 form.reset();
                 document.querySelectorAll(".type-tile").forEach(t  => t.classList.remove("active"));
                 document.querySelectorAll(".type-choice").forEach(b => b.classList.remove("active-lost","active-found"));
-                document.getElementById("itemType").value = "";
-                document.getElementById("category").value = "";
-                document.getElementById("otherTypeWrap")?.classList.add("hidden");
-                showMsg(msgEl, "Request submitted! An admin will review it shortly.", "success");
+                
             } catch (err) {
                 showMsg(msgEl, "Could not submit request. Please try again.", "error");
                 console.error(err);
@@ -1111,8 +1158,8 @@ async function renderAdminDashboard() {
             pendingEl.innerHTML = pendingReq.length
                 ? pendingReq.map(req => renderRequestCard(req, `
                     <div class="request-actions">
-                        <button class="button primary sm" data-action="approve-post" data-id="${req.id}"><i class="ph ph-check"></i> Approve</button>
-                        <button class="button danger sm" data-action="reject-post" data-id="${req.id}"><i class="ph ph-x"></i> Reject</button>
+                        <button class="button primary sm" data-action="approve" data-id="${req.id}"><i class="ph ph-check"></i> Approve</button>
+                        <button class="button danger sm" data-action="reject" data-id="${req.id}"><i class="ph ph-x"></i> Reject</button>
                     </div>`)).join("")
                 : emptyState("No pending requests right now.");
             pendingEl.querySelectorAll("button[data-action]").forEach(btn =>
@@ -1480,8 +1527,8 @@ function openRequestModal(pendingReq, pendingClaims, pendingChats, modal, allReq
     if (postEl) postEl.innerHTML = pendingReq.length
         ? pendingReq.map(req => renderRequestCard(req, `
             <div class="request-actions">
-                <button class="button primary sm" data-action="approve-post" data-id="${req.id}"><i class="ph ph-check"></i> Approve</button>
-                <button class="button danger sm" data-action="reject-post" data-id="${req.id}"><i class="ph ph-x"></i> Reject</button>
+                <button class="button primary sm" data-action="approve" data-id="${req.id}"><i class="ph ph-check"></i> Approve</button>
+                <button class="button danger sm" data-action="reject" data-id="${req.id}"><i class="ph ph-x"></i> Reject</button>
             </div>`)).join("")
         : emptyState("No pending post requests.");
 
@@ -1559,7 +1606,8 @@ async function processRequest(id, action, cachedRequests = null) {
                     id: `item-${Date.now()}`,
                     name: req.name, category: req.category, itemType: req.itemType,
                     description: req.description, location: req.location,
-                    date: req.date, contact: req.contact
+                    date: req.date, contact: req.contact,
+                    imageUrl: req.imageUrl // <--- ADD THIS LINE
                 });
                 logActivity("post_approved", `"${req.name}" by ${req.requestedBy} was approved`);
                 addNotification(`Post request for "${req.name}" approved.`, 'info');
@@ -1653,13 +1701,13 @@ function initAdminRequestForm() {
         if (msgEl) { msgEl.textContent = ""; msgEl.className = ""; }
 
         const category = document.getElementById("category").value;
-        if (!category) { showMsg(msgEl, "Please choose Lost or Found.", "error"); return; }
+        if (!category) { showMsg(msgEl, "Please choose whether you lost or found the item.", "error"); return; }
 
         let itemType = document.getElementById("itemType").value;
         if (!itemType) { showMsg(msgEl, "Please select the item type.", "error"); return; }
         if (itemType === "Other") {
             const custom = document.getElementById("otherTypeText")?.value.trim();
-            if (!custom) { showMsg(msgEl, "Please describe the item type.", "error"); return; }
+            if (!custom) { showMsg(msgEl, "Please describe what type of item it is.", "error"); return; }
             itemType = custom;
         }
 
@@ -1668,26 +1716,66 @@ function initAdminRequestForm() {
         const location    = document.getElementById("location").value.trim();
         const dateFound   = document.getElementById("dateFound").value;
         const contactInfo = document.getElementById("contactInfo").value.trim();
+        
+        // Get the file
+        const fileInput = document.getElementById("itemImage");
+        const file = fileInput ? fileInput.files[0] : null;
+
         if (!itemName || !description || !location || !dateFound || !contactInfo) {
-            showMsg(msgEl, "Please complete every field before posting.", "error"); return;
+            showMsg(msgEl, "Please complete every text field before submitting.", "error"); return;
         }
 
-        showConfirm("Post Item Directly", `Post "${itemName}" as a ${category} item? It goes live immediately.`, "Post Item", false, async () => {
+        showConfirm("Submit Request", `Submit this ${category} item request?`, "Submit", false, async () => {
             const submitBtn = form.querySelector("button[type=submit]");
-            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Posting…"; }
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Uploading & Submitting…"; }
+            
             try {
-                await dbInsertItem({
-                    id: `item-${Date.now()}`,
+                let imageUrl = null;
+
+                // 1. Upload the image if one was selected
+                if (file) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+                    const filePath = `${user.email}/${fileName}`;
+
+                    // Upload to Supabase Storage
+                    const { error: uploadError } = await supabaseClient.storage
+                        .from('item-images')
+                        .upload(filePath, file);
+
+                    if (uploadError) throw uploadError;
+
+                    // Get the public URL
+                    const { data: publicUrlData } = supabaseClient.storage
+                        .from('item-images')
+                        .getPublicUrl(filePath);
+
+                    imageUrl = publicUrlData.publicUrl;
+                }
+
+                // 2. Insert into database (make sure to update dbInsertRequest to accept image_url)
+                await dbInsertRequest({
+                    id: `req-${Date.now()}`,
                     name: itemName, category, itemType, description, location,
-                    date: dateFound, contact: contactInfo
+                    date: dateFound, contact: contactInfo,
+                    requestedBy: user.email, status: "pending",
+                    image_url: imageUrl // NEW FIELD
                 });
-                logActivity("post_approved", `Admin posted "${itemName}" (${category} · ${itemType}) directly`);
+
+                logActivity("post_request", `${user.email} submitted a ${category} request for "${itemName}"`);
+                showMsg(msgEl, "Request submitted! An admin will review it shortly.", "success");
+                
+                // Reset form
                 isFormDirty = false;
-                window.location.href = "adminpage.html";
+                form.reset();
+                document.querySelectorAll(".type-tile").forEach(t  => t.classList.remove("active"));
+                document.querySelectorAll(".type-choice").forEach(b => b.classList.remove("active-lost","active-found"));
+                
             } catch (err) {
-                showMsg(msgEl, "Could not post item. Please try again.", "error");
+                showMsg(msgEl, "Could not submit request. Please try again.", "error");
                 console.error(err);
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Post Item"; }
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit Request"; }
             }
         });
     });
