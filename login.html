@@ -52,7 +52,7 @@
         <div class="pw-input-wrap">
           <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
           <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('password', this)">
-            <i class="ph ph-eye"></i>
+            <i class="ph ph-eye-slash"></i>
           </button>
         </div>
       </label>
@@ -87,7 +87,7 @@
         <div class="pw-input-wrap">
           <input type="password" id="signupPassword" required placeholder="Min. 8 chars with A, 1, &amp;!" autocomplete="new-password">
           <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('signupPassword', this)">
-            <i class="ph ph-eye"></i>
+            <i class="ph ph-eye-slash"></i>
           </button>
         </div>
         <!-- Strength Meter -->
@@ -112,7 +112,7 @@
         <div class="pw-input-wrap">
           <input type="password" id="signupConfirm" required placeholder="Repeat your password" autocomplete="new-password">
           <button type="button" class="pw-toggle-btn" aria-label="Toggle confirm password visibility" onclick="togglePwVisibility('signupConfirm', this)">
-            <i class="ph ph-eye"></i>
+            <i class="ph ph-eye-slash"></i>
           </button>
         </div>
       </label>
@@ -269,7 +269,7 @@
     if (!input) return;
     const isHidden = input.type === 'password';
     input.type     = isHidden ? 'text' : 'password';
-    icon.className = isHidden ? 'ph ph-eye-slash' : 'ph ph-eye';
+    icon.className = isHidden ? 'ph ph-eye' : 'ph ph-eye-slash';
     btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
   }
 
