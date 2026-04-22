@@ -49,7 +49,12 @@
       </label>
       <label>
         Password
-        <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
+        <div class="pw-input-wrap">
+          <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
+          <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('password', this)">
+            <i class="ph ph-eye"></i>
+          </button>
+        </div>
       </label>
       <div class="form-actions">
         <button type="submit" class="button primary" style="flex:1;">
@@ -79,7 +84,12 @@
       </label>
       <label>
         Password
-        <input type="password" id="signupPassword" required placeholder="Min. 8 chars with A, 1, &amp;!" autocomplete="new-password">
+        <div class="pw-input-wrap">
+          <input type="password" id="signupPassword" required placeholder="Min. 8 chars with A, 1, &amp;!" autocomplete="new-password">
+          <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('signupPassword', this)">
+            <i class="ph ph-eye"></i>
+          </button>
+        </div>
         <!-- Strength Meter -->
         <div class="pw-strength-wrap">
           <div class="pw-strength-bar">
@@ -99,7 +109,12 @@
       </label>
       <label>
         Confirm password
-        <input type="password" id="signupConfirm" required placeholder="Repeat your password" autocomplete="new-password">
+        <div class="pw-input-wrap">
+          <input type="password" id="signupConfirm" required placeholder="Repeat your password" autocomplete="new-password">
+          <button type="button" class="pw-toggle-btn" aria-label="Toggle confirm password visibility" onclick="togglePwVisibility('signupConfirm', this)">
+            <i class="ph ph-eye"></i>
+          </button>
+        </div>
       </label>
 
       <!-- Terms & Conditions -->
@@ -246,6 +261,43 @@
   });
 
   function closeModal(m) { if (m) { m.classList.add('hidden'); m.setAttribute('aria-hidden','true'); } }
+
+  /* ── Show / Hide Password ── */
+  function togglePwVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon  = btn.querySelector('i');
+    if (!input) return;
+    const isHidden = input.type === 'password';
+    input.type     = isHidden ? 'text' : 'password';
+    icon.className = isHidden ? 'ph ph-eye-slash' : 'ph ph-eye';
+    btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+  }
+
+  /* ── Show / Hide Password ── */
+  function togglePw(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon  = btn.querySelector('i');
+    const show  = input.type === 'password';
+    input.type  = show ? 'text' : 'password';
+    icon.className = show ? 'ph ph-eye-slash' : 'ph ph-eye';
+    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  }
+
+  /* ── Email domain hint ── */
+  ['email','signupEmail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('blur', () => {
+      const v = el.value.trim();
+      if (v && !/@(gmail\.com|iacademy\.edu\.ph)$/.test(v)) {
+        el.setCustomValidity('Please use a @gmail.com or @iacademy.edu.ph email.');
+        el.reportValidity();
+      } else {
+        el.setCustomValidity('');
+      }
+    });
+    el.addEventListener('input', () => el.setCustomValidity(''));
+  });
 </script>
 </body>
 </html>

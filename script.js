@@ -750,6 +750,7 @@ function initLogin() {
    ════════════════════════════════════════════════════════ */
 let _memberCatFilter = "all";
 
+
 async function initMemberPage() {
     applyTheme();
     const user = ensureLogin("member");
@@ -775,6 +776,7 @@ async function initMemberPage() {
         }
     }
     updateChatLinkVisibility(user);
+    startRealtimeNotifications(user, false);
 
     const nameEl   = document.getElementById("memberName");
     const avatarEl = document.getElementById("memberAvatar");
@@ -1117,6 +1119,8 @@ function initRequestForm() {
 /* ════════════════════════════════════════════════════════
    ADMIN PAGE
    ════════════════════════════════════════════════════════ */
+   startRealtimeNotifications(user, true);
+
 function initAdminPage() {
     applyTheme();
     const user = ensureLogin("admin");
@@ -1953,20 +1957,42 @@ function startRealtimeNotifications(user, isAdmin) {
             })
             .subscribe();
     } else {
-        // MEMBER: Listen for status updates (approvals/rejections) to their own requests
+        // Helper to show/hide the Active Chat sidebar link without a full page reload
+        function refreshChatLink() {
+            const chatLink = document.getElementById("activeChatLink");
+            if (!chatLink) return;
+            Promise.all([
+                supabaseClient.from('chat_requests').select('status').eq('user_email', user.email).eq('status', 'approved'),
+                dbGetMessages(user.email, "admin@admin.com")
+            ]).then(([{ data: reqs }, msgs]) => {
+                const visible = (reqs && reqs.length > 0) || (msgs && msgs.length > 0);
+                chatLink.classList.toggle("hidden", !visible);
+                if (visible) showToast("💬 Admin opened a chat — check Active Chat!", "info");
+            }).catch(console.error);
+        }
+
         supabaseClient.channel('member-global-notifs')
+            // 1. Item post request approved / rejected
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'requests' }, payload => {
-                // Only alert the user if it's THEIR request and it's no longer 'pending'
                 if (payload.new.requested_by === user.email && payload.new.status !== 'pending') {
                     const isApproved = payload.new.status === 'approve' || payload.new.status === 'Approved';
                     const actionWord = isApproved ? 'APPROVED' : 'REJECTED';
-                    
                     showToast(`Your request for "${payload.new.name}" was ${actionWord}!`, isApproved ? "success" : "error");
-                    
-                    // If the member is currently on their dashboard, refresh the lists
-                    if (typeof initMemberPage === "function") {
-                        initMemberPage();
+                    if (typeof renderMyRequests === "function") {
+                        dbGetRequests(user.email).then(reqs => _renderMyRequests(reqs)).catch(console.error);
                     }
+                }
+            })
+            // 2. Admin approves chat request → show Active Chat link instantly
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_requests' }, payload => {
+                if (payload.new.user_email === user.email && payload.new.status === 'approved') {
+                    refreshChatLink();
+                }
+            })
+            // 3. Admin sends first message directly (no prior approval) → show Active Chat link instantly
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                if (payload.new.receiver_email === user.email) {
+                    refreshChatLink();
                 }
             })
             .subscribe();

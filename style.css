@@ -431,6 +431,18 @@ textarea { resize: vertical; min-height: 100px; }
 .pw-rule::before { content: '○'; font-size: 0.6rem; }
 .pw-rule.ok::before { content: '●'; }
 
+/* ── Password show/hide wrapper ── */
+.pw-input-wrap { position: relative; display: grid; }
+.pw-input-wrap input { padding-right: 42px; }
+.pw-toggle-btn {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; padding: 4px; font-size: 1.05rem;
+  display: flex; align-items: center; justify-content: center;
+  width: auto; transition: color var(--tr); line-height: 1;
+}
+.pw-toggle-btn:hover { color: var(--accent-light); }
+
 /* ══════════════════════════════════════════════════════════
    TERMS & CONDITIONS
    ══════════════════════════════════════════════════════════ */
@@ -846,4 +858,36 @@ textarea { resize: vertical; min-height: 100px; }
 .card-img-thumb:hover .card-img-overlay {
     background: rgba(0, 0, 0, 0.45);
     opacity: 1;
+}
+/* ── Password Input Wrapper ── */
+.pw-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.pw-input-wrap input {
+    flex: 1;
+    padding-right: 42px !important;
+    margin-bottom: 0;
+}
+.pw-toggle-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+    border-radius: 4px;
+}
+.pw-toggle-btn:hover {
+    color: var(--text-primary);
 }
