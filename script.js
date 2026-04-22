@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    iAcademy Lost & Found — script.js  (Merged & Upgraded)
    Features: Admin power granting, strong password policy,
              text-to-voice, notifications, dark/light mode,
@@ -716,6 +716,10 @@ function initLogin() {
         if (!isStrongPassword(password)) { showMsg(errEl,"Password must be at least 8 characters and include an uppercase letter, a number, and a special character.","error"); return; }
         if (password !== confirm)  { showMsg(errEl, "Passwords do not match.", "error"); return; }
         if (!termsOk)              { showMsg(errEl, "Please accept the Terms & Conditions before signing up.", "error"); return; }
+        const emailLower = email.toLowerCase();
+        if (!emailLower.endsWith('@gmail.com') && !emailLower.endsWith('@iacademy.edu.ph')) {
+            showMsg(errEl, "Please use a valid @gmail.com or @iacademy.edu.ph email address.", "error"); return;
+        }
         if (email.toLowerCase() === ADMIN_EMAIL) { showMsg(errEl, "That email is reserved.", "error"); return; }
 
         submitBtn.disabled = true;
