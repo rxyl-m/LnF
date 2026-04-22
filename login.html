@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -273,31 +273,20 @@
     btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
   }
 
-  /* ── Show / Hide Password ── */
-  function togglePw(inputId, btn) {
-    const input = document.getElementById(inputId);
-    const icon  = btn.querySelector('i');
-    const show  = input.type === 'password';
-    input.type  = show ? 'text' : 'password';
-    icon.className = show ? 'ph ph-eye-slash' : 'ph ph-eye';
-    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-  }
-
-  /* ── Email domain hint ── */
-  ['email','signupEmail'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('blur', () => {
-      const v = el.value.trim();
+  /* ── Email domain hint (sign-up only) ── */
+  const signupEmailEl = document.getElementById('signupEmail');
+  if (signupEmailEl) {
+    signupEmailEl.addEventListener('blur', () => {
+      const v = signupEmailEl.value.trim();
       if (v && !/@(gmail\.com|iacademy\.edu\.ph)$/.test(v)) {
-        el.setCustomValidity('Please use a @gmail.com or @iacademy.edu.ph email.');
-        el.reportValidity();
+        signupEmailEl.setCustomValidity('Please use a @gmail.com or @iacademy.edu.ph email.');
+        signupEmailEl.reportValidity();
       } else {
-        el.setCustomValidity('');
+        signupEmailEl.setCustomValidity('');
       }
     });
-    el.addEventListener('input', () => el.setCustomValidity(''));
-  });
+    signupEmailEl.addEventListener('input', () => signupEmailEl.setCustomValidity(''));
+  }
 </script>
 </body>
 </html>
