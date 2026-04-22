@@ -6,7 +6,7 @@
    ========================================================= */
 
 const ADMIN_EMAIL      = "admin@iacademy.edu.ph";
-const ADMIN_PASSWORD   = "onlyadmincaaccessthis";
+const ADMIN_PASSWORD   = "onlyadmincanaccessthis";
 const STORAGE_USER     = "lf_user";
 const STORAGE_ACTIVITY = "lf_activity";
 const STORAGE_THEME    = "lf_theme";
