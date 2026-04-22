@@ -1,12 +1,12 @@
-/* =========================================================
+﻿/* =========================================================
    iAcademy Lost & Found — script.js  (Merged & Upgraded)
    Features: Admin power granting, strong password policy,
              text-to-voice, notifications, dark/light mode,
              terms acceptance, admin approval workflow
    ========================================================= */
 
-const ADMIN_EMAIL      = "admin@admin.com";
-const ADMIN_PASSWORD   = "admin123";
+const ADMIN_EMAIL      = "admin@iacademy.edu.ph";
+const ADMIN_PASSWORD   = "onlyadmincaaccessthis";
 const STORAGE_USER     = "lf_user";
 const STORAGE_ACTIVITY = "lf_activity";
 const STORAGE_THEME    = "lf_theme";
