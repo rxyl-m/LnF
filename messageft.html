@@ -122,7 +122,7 @@ const isAdmin = user.role === "admin";
 const urlParams = new URLSearchParams(window.location.search);
 
 // 2. Set up the logic: If Admin, talk to URL target. If Member, talk to Admin.
-const targetEmail = isAdmin ? urlParams.get('email') : "admin@admin.com";
+const targetEmail = isAdmin ? urlParams.get('email') : "admin@iacademy.edu.ph";
 const targetName = isAdmin ? urlParams.get('name') : "System Admin";
 
 document.getElementById('chatUserName').textContent = targetName;
