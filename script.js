@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    iAcademy Lost & Found — script.js  (Merged & Upgraded)
    Features: Admin power granting, strong password policy,
              text-to-voice, notifications, dark/light mode,
@@ -769,7 +769,7 @@ async function initMemberPage() {
                 .select('status')
                 .eq('user_email', user.email)
                 .eq('status', 'approved');
-            const messages = await dbGetMessages(user.email, "admin@admin.com");
+            const messages = await dbGetMessages(user.email, "admin@iacademy.edu.ph");
             if ((requests && requests.length > 0) || (messages && messages.length > 0)) {
                 chatLink.classList.remove("hidden");
             } else {
@@ -1909,7 +1909,7 @@ async function renderResolutions() {
         let chatLogHtml = "";
         if (r.chat_history && Array.isArray(r.chat_history) && r.chat_history.length > 0) {
             const msgs = r.chat_history.map(msg => {
-                const isAdmin = msg.sender_email === "admin@admin.com";
+                const isAdmin = msg.sender_email === "admin@iacademy.edu.ph";
                 return `
                     <div style="margin-bottom: 6px; font-size: 0.82rem; line-height: 1.4;">
                         <strong style="color: ${isAdmin ? 'var(--accent)' : 'var(--text-primary)'}">${isAdmin ? 'Admin' : 'Member'}:</strong>
@@ -1966,7 +1966,7 @@ function startRealtimeNotifications(user, isAdmin) {
             if (!chatLink) return;
             Promise.all([
                 supabaseClient.from('chat_requests').select('status').eq('user_email', user.email).eq('status', 'approved'),
-                dbGetMessages(user.email, "admin@admin.com")
+                dbGetMessages(user.email, "admin@iacademy.edu.ph")
             ]).then(([{ data: reqs }, msgs]) => {
                 const visible = (reqs && reqs.length > 0) || (msgs && msgs.length > 0);
                 chatLink.classList.toggle("hidden", !visible);
