@@ -269,7 +269,7 @@
     if (!input) return;
     const isHidden = input.type === 'password';
     input.type     = isHidden ? 'text' : 'password';
-    icon.className = isHidden ? 'ph ph-eye' : 'ph ph-eye-slash';
+    icon.className = isHidden ? 'ph ph-eye-slash' : 'ph ph-eye';
     btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
   }
 
