@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    iAcademy Lost & Found — script.js  (Merged & Upgraded)
    Features: Admin power granting, strong password policy,
              text-to-voice, notifications, dark/light mode,
@@ -1812,16 +1812,23 @@ function initMobileMenu() {
     const appSidebar    = document.getElementById("appSidebar");
     const menuIcon      = document.getElementById("menuIcon");
     if (!mobileMenuBtn || !appSidebar) return;
+    
     mobileMenuBtn.addEventListener("click", () => {
         appSidebar.classList.toggle("open");
         if (menuIcon) menuIcon.className = appSidebar.classList.contains("open") ? "ph ph-x" : "ph ph-list";
+        
+        // NEW: Clear the notification dot when they open the menu!
+        const dot = document.getElementById("mobileMenuDot");
+        if (dot) dot.remove();
     });
+    
     document.querySelectorAll(".nav-link").forEach(link => {
         link.addEventListener("click", () => {
             appSidebar.classList.remove("open");
             if (menuIcon) menuIcon.className = "ph ph-list";
         });
     });
+    
     document.addEventListener("click", e => {
         if (appSidebar.classList.contains("open") &&
             !appSidebar.contains(e.target) &&
@@ -1961,18 +1968,39 @@ function startRealtimeNotifications(user, isAdmin) {
             .subscribe();
     } else {
         // Helper to show/hide the Active Chat sidebar link without a full page reload
-        function refreshChatLink() {
-            const chatLink = document.getElementById("activeChatLink");
-            if (!chatLink) return;
-            Promise.all([
-                supabaseClient.from('chat_requests').select('status').eq('user_email', user.email).eq('status', 'approved'),
-                dbGetMessages(user.email, "admin@iacademy.edu.ph")
-            ]).then(([{ data: reqs }, msgs]) => {
-                const visible = (reqs && reqs.length > 0) || (msgs && msgs.length > 0);
-                chatLink.classList.toggle("hidden", !visible);
-                if (visible) showToast("💬 Admin opened a chat — check Active Chat!", "info");
-            }).catch(console.error);
-        }
+    function refreshChatLink() {
+        const chatLink = document.getElementById("activeChatLink");
+        if (!chatLink) return;
+        
+        // 1. Check if the link was ALREADY hidden before checking the DB
+        const wasHidden = chatLink.classList.contains("hidden");
+
+        Promise.all([
+            supabaseClient.from('chat_requests').select('status').eq('user_email', user.email).eq('status', 'approved'),
+            dbGetMessages(user.email, "admin@iacademy.edu.ph")
+        ]).then(([{ data: reqs }, msgs]) => {
+            const visible = (reqs && reqs.length > 0) || (msgs && msgs.length > 0);
+            chatLink.classList.toggle("hidden", !visible);
+            
+            // 2. Only show the toast & dot if the chat JUST became visible
+            if (visible && wasHidden) { 
+                showToast("💬 Admin opened a chat — check Active Chat!", "info");
+                
+                // 3. Mobile UX: Add a red dot to the hamburger menu so they know to open it
+                const mobileBtn = document.getElementById("mobileMenuBtn");
+                if (mobileBtn && window.innerWidth <= 1100) {
+                    let dot = document.getElementById("mobileMenuDot");
+                    if (!dot) {
+                        dot = document.createElement("div");
+                        dot.id = "mobileMenuDot";
+                        dot.style.cssText = "position:absolute; top:-2px; right:-2px; width:12px; height:12px; background:var(--red); border-radius:50%; border:2px solid var(--bg-surface);";
+                        mobileBtn.style.position = "relative";
+                        mobileBtn.appendChild(dot);
+                    }
+                }
+            }
+        }).catch(console.error);
+    }
 
         supabaseClient.channel('member-global-notifs')
             // 1. Item post request approved / rejected
