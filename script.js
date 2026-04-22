@@ -1119,8 +1119,6 @@ function initRequestForm() {
 /* ════════════════════════════════════════════════════════
    ADMIN PAGE
    ════════════════════════════════════════════════════════ */
-   startRealtimeNotifications(user, true);
-
 function initAdminPage() {
     applyTheme();
     const user = ensureLogin("admin");
@@ -1136,6 +1134,7 @@ function initAdminPage() {
         link.addEventListener("click", e => { e.preventDefault(); switchAdminSection(link.dataset.section); });
     });
     setupNotifBell();
+    startRealtimeNotifications(user, true);
     renderAdminDashboard();
 }
 
