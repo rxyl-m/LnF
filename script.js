@@ -625,7 +625,7 @@ document.addEventListener("click", e => {
 });
 
 /* ════════════════════════════════════════════════════════
-   LOGIN / SIGN UP
+   LOGIN / SIGN UP (Updated for Supabase Auth)
    ════════════════════════════════════════════════════════ */
 function initLogin() {
     applyTheme();
@@ -662,6 +662,7 @@ function initLogin() {
         });
     });
 
+    // ─── LOGIN HANDLING ───
     document.getElementById("loginForm")?.addEventListener("submit", async e => {
         e.preventDefault();
         const errorEl   = document.getElementById("loginError");
@@ -671,6 +672,7 @@ function initLogin() {
         if (errorEl) { errorEl.textContent = ""; errorEl.className = ""; }
         if (!email || !password) { showMsg(errorEl, "Please enter email and password.", "error"); return; }
 
+        // Keep the Admin Backdoor
         if (email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
             setCurrentUser({ email, name: "System Admin", role: "admin" });
             logActivity("login", "Admin signed in");
@@ -680,14 +682,36 @@ function initLogin() {
 
         submitBtn.disabled = true;
         submitBtn.innerHTML = "<i class='ph ph-circle-notch'></i> Signing in…";
+        
         try {
-            const found = await dbGetUserByEmail(email);
-            if (!found)                     { showMsg(errorEl, "No account found with that email. Please sign up first.", "error"); return; }
-            if (found.password !== password) { showMsg(errorEl, "Incorrect password.", "error"); return; }
+            // NEW: Supabase Sign In
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                // Catch unverified emails or wrong passwords
+                const errMsg = error.message === "Email not confirmed" 
+                    ? "Please check your email and verify your account first." 
+                    : "Incorrect email or password.";
+                showMsg(errorEl, errMsg, "error");
+                return;
+            }
+
             isLoginDirty = false;
-            setCurrentUser({ email: found.email, name: found.name, role: found.role || "member" });
-            logActivity("login", `${found.name} signed in`);
-            window.location.href = found.role === "admin" ? "adminpage.html" : "memberpage.html";
+            
+            // Extract user data from the secure Auth session
+            const userProfile = { 
+                email: data.user.email, 
+                name: data.user.user_metadata?.full_name || email.split('@')[0], 
+                role: data.user.user_metadata?.role || "member" 
+            };
+            
+            setCurrentUser(userProfile);
+            logActivity("login", `${userProfile.name} signed in`);
+            window.location.href = userProfile.role === "admin" ? "adminpage.html" : "memberpage.html";
+
         } catch (err) {
             showMsg(errorEl, "Could not connect. Please try again.", "error");
             console.error(err);
@@ -697,6 +721,7 @@ function initLogin() {
         }
     });
 
+    // ─── SIGNUP HANDLING ───
     document.getElementById("signupForm")?.addEventListener("submit", async e => {
         e.preventDefault();
         const errEl     = document.getElementById("signupError");
@@ -724,21 +749,41 @@ function initLogin() {
 
         submitBtn.disabled = true;
         submitBtn.innerHTML = "<i class='ph ph-circle-notch'></i> Creating account…";
+        
         try {
-            const existing = await dbGetUserByEmail(email);
-            if (existing) { showMsg(errEl, "An account with that email already exists.", "error"); return; }
-            const newUser = { email, name:`${firstName} ${lastName}`, password, role:"member" };
-            await dbInsertUser(newUser);
-            logActivity("signup", `${newUser.name} created an account`);
-            addNotification(`New member registered: ${newUser.name}`, 'info');
+            // NEW: Supabase Sign Up (Triggers Verification Email)
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    data: {
+                        full_name: `${firstName} ${lastName}`,
+                        role: "member"
+                    },
+                    emailRedirectTo: window.location.origin + '/login.html' 
+                }
+            });
+
+            if (error) { 
+                showMsg(errEl, error.message, "error"); 
+                return; 
+            }
+
+            logActivity("signup", `${firstName} ${lastName} created an account`);
+            addNotification(`New member registered: ${firstName} ${lastName}`, 'info');
+            
             isLoginDirty = false;
             document.getElementById("signupForm").reset();
-            showMsg(succEl, "Account created! You can now sign in.", "success");
+            
+            // Updated success message to instruct user to check email
+            showMsg(succEl, "Account created! Please check your email to verify your identity.", "success");
+            
             setTimeout(() => {
                 document.querySelector('.auth-tab[data-tab="signin"]')?.click();
                 const emailEl = document.getElementById("email");
                 if (emailEl) emailEl.value = email;
-            }, 1400);
+            }, 3000);
+
         } catch (err) {
             showMsg(errEl, "Could not create account. Please try again.", "error");
             console.error(err);
