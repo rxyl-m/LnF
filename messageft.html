@@ -48,6 +48,12 @@
     </style>
 </head>
 <body class="page">
+<!-- ── Splash Screen (ported from UMak Hub) ── -->
+<div id="appSplash" class="app-splash">
+    <div class="splash-logo-container">
+        <img src="lnflogo.png" alt="iAcademy Lost &amp; Found Loading" class="splash-logo">
+    </div>
+</div>
 <div class="app-shell" style="max-width: 800px; margin: 0 auto; padding-top: 40px;">
     
     <div class="hero-eyebrow" style="margin-bottom:14px;">
@@ -122,11 +128,19 @@ const isAdmin = user.role === "admin";
 const urlParams = new URLSearchParams(window.location.search);
 
 // 2. Set up the logic: If Admin, talk to URL target. If Member, talk to Admin.
+//    Also read ?issue= param (ported from UMak Hub's ?dept= department routing)
 const targetEmail = isAdmin ? urlParams.get('email') : "admin@iacademy.edu.ph";
-const targetName = isAdmin ? urlParams.get('name') : "System Admin";
+const targetName  = isAdmin ? urlParams.get('name')  : "System Admin";
+const issueType   = urlParams.get('issue') || localStorage.getItem('activeChatIssue') || '';
 
-document.getElementById('chatUserName').textContent = targetName;
-document.getElementById('chatUserEmail').textContent = targetEmail;
+document.getElementById('chatUserName').textContent  = targetName;
+// Show issue type as a badge in the subtitle area (L&F adaptation)
+const emailEl = document.getElementById('chatUserEmail');
+if (emailEl) {
+    emailEl.innerHTML = issueType
+        ? `${targetEmail} &nbsp;·&nbsp; <span style="color:var(--accent-light);font-weight:600;">${issueType}</span>`
+        : targetEmail;
+}
 document.getElementById('backBtn').href = isAdmin ? "adminpage.html" : "memberpage.html";
 
 // Security & UI setup

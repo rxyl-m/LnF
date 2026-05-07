@@ -10,9 +10,18 @@
     <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body class="page page-member" data-page="member">
+<!-- ── Splash Screen (ported from UMak Hub) ── -->
+<div id="appSplash" class="app-splash">
+    <div class="splash-logo-container">
+        <img src="lnflogo.png" alt="iAcademy Lost &amp; Found Loading" class="splash-logo">
+    </div>
+</div>
 <button class="floating-theme-btn theme-toggle-btn" title="Toggle dark/light mode"><i class="ph ph-moon theme-icon"></i></button>
 <div class="app-shell">
 <div class="layout">
+
+    <!-- Mobile sidebar backdrop overlay (ported from UMak Hub) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="mobile-header">
         <div class="brand-panel" style="margin-bottom:0; padding:0;">
@@ -114,6 +123,13 @@
                     <div class="search-field">
                         <input type="search" id="memberSearch" placeholder="Search items…" oninput="filterMemberItems()">
                     </div>
+                    <!-- ── Notification Bell (ported from UMak Hub) ── -->
+                    <div class="notif-bell-wrap" style="position: relative;">
+                        <button id="notificationBell" class="icon-button" aria-label="View notifications">
+                            <i class="ph ph-bell"></i>
+                            <span id="notificationCount" class="badge">0</span>
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -185,14 +201,32 @@
         <div class="modal-backdrop" onclick="closeModal(this.parentElement)"></div>
         <div class="modal-panel" style="max-width:400px;">
             <div class="modal-header">
-                <div><h2>Request Chat</h2><p>Provide a reason for contacting the admin.</p></div>
+                <div>
+                    <h2>Request Admin Chat</h2>
+                    <p>Describe what you need help with.</p>
+                </div>
                 <button onclick="closeModal(document.getElementById('chatRequestModal'))" class="button secondary sm"><i class="ph ph-x"></i></button>
             </div>
+            <!-- ── Issue-Type selector (ported from UMak Hub's department selector) ── -->
             <form id="chatRequestForm">
-                <label>Reason for chat
+                <label>
+                    Issue Type
+                    <select id="chatDepartment" required>
+                        <option value="" disabled selected>Select what this is about...</option>
+                        <option value="Lost Item Help">Lost Item Help (Can't find my item)</option>
+                        <option value="Found Item Claim">Found Item Claim (I found something)</option>
+                        <option value="Request Issue">Request Issue (Problem with my submission)</option>
+                        <option value="General Inquiry">General Inquiry</option>
+                    </select>
+                </label>
+                <label>
+                    Reason for chat
                     <textarea id="chatReason" rows="3" required placeholder="e.g., I have proof this wallet is mine..."></textarea>
                 </label>
-                <button type="submit" class="button primary fullwidth" style="margin-top:14px;">Submit Request</button>
+                <p id="chatRequestError" style="color: var(--color-danger, #e11d48); font-size: 0.85rem; min-height: 1.2em; margin: 4px 0 0;"></p>
+                <button type="submit" class="button primary fullwidth" style="margin-top:14px;" id="chatRequestSubmitBtn">
+                    <i class="ph ph-paper-plane"></i> Send Request
+                </button>
             </form>
         </div>
     </div>
@@ -221,5 +255,100 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script src="script.js"></script>
+<script>
+/* ── Sidebar Overlay Sync (ported from UMak Hub) ── */
+(function() {
+    const overlay = document.getElementById('sidebarOverlay');
+    const sidebar = document.getElementById('appSidebar');
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const menuIcon = document.getElementById('menuIcon');
+    if (!overlay || !sidebar) return;
+    const close = () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        if (menuIcon) menuIcon.className = 'ph ph-list';
+    };
+    overlay.addEventListener('click', close);
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            setTimeout(() => {
+                overlay.classList.toggle('active', sidebar.classList.contains('open'));
+            }, 0);
+        });
+    }
+    document.querySelectorAll('#appSidebar .nav-link').forEach(l => {
+        l.addEventListener('click', () => overlay.classList.remove('active'));
+    });
+})();
+
+/* ── Issue-Type-Aware Chat Form Handler (ported from UMak Hub's department-aware chat) ── */
+(function () {
+    window.addEventListener('DOMContentLoaded', () => { replaceChatFormHandler(); });
+    if (document.readyState !== 'loading') replaceChatFormHandler();
+
+    function replaceChatFormHandler() {
+        const oldForm = document.getElementById('chatRequestForm');
+        if (!oldForm || oldForm.dataset.issueFixed) return;
+
+        const form = oldForm.cloneNode(true);
+        oldForm.replaceWith(form);
+        form.dataset.issueFixed = '1';
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const issueType = document.getElementById('chatDepartment').value.trim();
+            const reason    = document.getElementById('chatReason').value.trim();
+            const errEl     = document.getElementById('chatRequestError');
+            const btn       = document.getElementById('chatRequestSubmitBtn');
+
+            errEl.textContent = '';
+
+            if (!issueType) { errEl.textContent = 'Please select an issue type.'; return; }
+            if (!reason)    { errEl.textContent = 'Please describe your reason for the chat.'; return; }
+
+            const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+            if (!user) { errEl.textContent = 'You must be logged in to request a chat.'; return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner"></i> Sending...';
+
+            try {
+                /* Store issue type in the existing chat_requests table under user_name field pattern
+                   We tag it as "[IssueType] reason" so admin can see the category at a glance */
+                const { error } = await supabaseClient
+                    .from('chat_requests')
+                    .insert([{
+                        user_email : user.email,
+                        user_name  : user.name || user.email,
+                        reason     : `[${issueType}] ${reason}`,
+                    }]);
+
+                if (error) throw error;
+
+                /* Show Active Chat link */
+                const chatLink = document.getElementById('activeChatLink');
+                if (chatLink) chatLink.classList.remove('hidden');
+
+                closeModal(document.getElementById('chatRequestModal'));
+
+                /* Inline notice (like UMak Hub memberNotice) */
+                showToast(`Chat request sent — an admin will respond shortly.`);
+
+            } catch (err) {
+                console.error('Chat request error:', err);
+                errEl.textContent = err?.message || 'Failed to send request. Please try again.';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-paper-plane"></i> Send Request';
+            }
+        });
+    }
+})();
+
+/* ── Setup notification bell for member page ── */
+window.addEventListener('DOMContentLoaded', () => {
+    if (typeof setupNotifBell === 'function') setupNotifBell();
+});
+</script>
 </body>
 </html>

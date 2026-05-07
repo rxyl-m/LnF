@@ -891,3 +891,135 @@ textarea { resize: vertical; min-height: 100px; }
 .pw-toggle-btn:hover {
     color: var(--text-primary);
 }
+/* ══════════════════════════════════════════════════════════
+   SPLASH SCREEN (ported from UMak Hub)
+   ══════════════════════════════════════════════════════════ */
+.app-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: var(--bg-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+}
+.app-splash.splash-fade {
+    opacity: 0;
+}
+.splash-logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: splashPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+@keyframes splashPop {
+    from { opacity: 0; transform: scale(0.75); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.splash-logo {
+    width: 88px;
+    height: 88px;
+    object-fit: contain;
+    border-radius: var(--radius-xl);
+    box-shadow: 0 0 40px var(--accent-glow);
+}
+
+/* ══════════════════════════════════════════════════════════
+   SIDEBAR OVERLAY (ported from UMak Hub — mobile)
+   ══════════════════════════════════════════════════════════ */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+.sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+@media (max-width: 1100px) {
+    .sidebar-overlay { display: block; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   NOTIFICATION DROPDOWN (member page — ported from UMak Hub)
+   ══════════════════════════════════════════════════════════ */
+.notif-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 320px;
+    background: var(--bg-float);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 200;
+    overflow: hidden;
+    animation: dropIn 0.18s ease both;
+}
+@keyframes dropIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.notif-dropdown.hidden { display: none; }
+.notif-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.84rem;
+}
+.notif-list { max-height: 320px; overflow-y: auto; }
+.notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    transition: background var(--tr);
+    position: relative;
+}
+.notif-item:hover { background: var(--bg-glass-hover); }
+.notif-item.unread { background: rgba(77,130,255,0.05); }
+.notif-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+.notif-text { color: var(--text-primary); line-height: 1.4; margin-bottom: 3px; }
+.notif-time { color: var(--text-muted); font-size: 0.73rem; font-family: var(--font-mono); }
+
+/* ── Floating Theme Button ── */
+.floating-theme-btn {
+    position: fixed;
+    bottom: 90px;
+    right: 28px;
+    z-index: 300;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: all var(--tr);
+}
+.floating-theme-btn:hover { color: var(--accent); border-color: var(--accent); transform: scale(1.08); }
