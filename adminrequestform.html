@@ -2,6 +2,13 @@
 <html lang="en">
 <head>
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script>
+  const localUser = JSON.parse(localStorage.getItem('lf_user'));
+  if (!localUser || localUser.role !== 'admin') {
+    // Use replace() so they can't click the "Back" button to return
+    window.location.replace('login.html'); 
+  }
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Post Item — Admin · Lost &amp; Found</title>

@@ -2,6 +2,15 @@
 <html lang="en">
 <head>
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script>
+  const localUser = JSON.parse(localStorage.getItem('lf_user'));
+  if (!localUser) {
+    window.location.replace('login.html');
+  } else if (localUser.role === 'admin') {
+    // If an admin tries to load the member page, politely bounce them to their dashboard
+    window.location.replace('adminpage.html');
+  }
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Report an Item — Lost & Found</title>
