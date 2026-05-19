@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    iAcademy Lost & Found — script.js  (Merged & Upgraded)
    Features: Admin power granting, strong password policy,
              text-to-voice, notifications, dark/light mode,
@@ -18,11 +18,45 @@ const STORAGE_NOTIFS   = "lf_notifications";
 function initSplash() {
     const splash = document.getElementById('appSplash');
     if (!splash) return;
-    // Fade out after a short delay so assets can load
+
+    // Inject the animated inner structure
+    splash.innerHTML = `
+        <div class="splash-grid"></div>
+        <div class="splash-scanline"></div>
+        <div class="splash-vignette"></div>
+        <div class="splash-corner tl"></div>
+        <div class="splash-corner br"></div>
+        <div class="splash-hex-wrap">
+            <div class="splash-hex-glow"></div>
+            <div class="splash-hex-bg"></div>
+            <svg class="splash-hex-svg" viewBox="0 0 148 148" xmlns="http://www.w3.org/2000/svg">
+                <polygon class="splash-hex-path"
+                    points="37,7 111,7 148,74 111,141 37,141 0,74"
+                    fill="none" stroke="rgba(77,130,255,0.4)" stroke-width="1.5"/>
+                <polygon
+                    points="44,17 104,17 136,74 104,131 44,131 12,74"
+                    fill="none" stroke="rgba(77,130,255,0.1)" stroke-width="0.75"/>
+            </svg>
+            <img src="lnflogo.png" alt="Loading" class="splash-logo">
+        </div>
+        <div class="splash-text-block">
+            <span class="splash-app-name">iAcademy L&amp;F</span>
+            <span class="splash-app-sub">Lost &amp; Found System</span>
+        </div>
+        <div class="splash-loader">
+            <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+            <div class="splash-dots">
+                <div class="splash-dot"></div>
+                <div class="splash-dot"></div>
+                <div class="splash-dot"></div>
+            </div>
+        </div>
+    `;
+
     setTimeout(() => {
         splash.classList.add('splash-fade');
         setTimeout(() => splash.remove(), 600);
-    }, 700);
+    }, 1800);
 }
 
 /* ════════════════════════════════════════════════════════
@@ -40,6 +74,63 @@ function applyTheme() {
     });
 }
 
+function showThemeFlash(isLight) {
+    let flash = document.getElementById('themeFlash');
+    if (!flash) {
+        flash = document.createElement('div');
+        flash.id = 'themeFlash';
+        flash.className = 'theme-flash';
+        document.body.appendChild(flash);
+    }
+    const accent  = isLight ? '#2b5ce6' : '#4d82ff';
+    const bg      = isLight ? '#f0f4ff' : '#060a18';
+    const gridClr = isLight ? 'rgba(43,92,230,0.06)' : 'rgba(77,130,255,0.055)';
+    const vigClr  = isLight ? 'rgba(200,210,240,0.5)' : 'rgba(0,0,0,0.6)';
+    const hexBg   = isLight ? 'rgba(43,92,230,0.06)' : 'rgba(77,130,255,0.07)';
+    const hexGlow = isLight ? 'rgba(43,92,230,0.08)' : 'rgba(77,130,255,0.10)';
+    const hexStr  = isLight ? 'rgba(43,92,230,0.45)' : 'rgba(77,130,255,0.4)';
+    const hexStr2 = isLight ? 'rgba(43,92,230,0.12)' : 'rgba(77,130,255,0.1)';
+    const textClr = isLight ? '#05063a' : '#f1f5f9';
+    const subClr  = isLight ? '#6b7280' : '#475569';
+    const label   = isLight ? 'Light Mode' : 'Dark Mode';
+    const sub     = isLight ? '\u2600 Switching to light' : '\u263D Switching to dark';
+    const scanOp  = isLight ? '0.1' : '0.35';
+
+    flash.innerHTML = `
+        <div style="position:absolute;inset:0;background:${bg};display:flex;align-items:center;justify-content:center;flex-direction:column;">
+            <div style="position:absolute;inset:0;pointer-events:none;
+                background-image:linear-gradient(${gridClr} 1px,transparent 1px),linear-gradient(90deg,${gridClr} 1px,transparent 1px);
+                background-size:32px 32px;"></div>
+            <div style="position:absolute;inset:0;pointer-events:none;opacity:${scanOp};
+                background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.07) 3px,rgba(0,0,0,0.07) 4px);"></div>
+            <div style="position:absolute;inset:0;pointer-events:none;
+                background:radial-gradient(ellipse at center,transparent 48%,${vigClr} 100%);"></div>
+            <div style="position:absolute;top:22px;left:22px;width:28px;height:28px;
+                border-top:1.5px solid ${accent};border-left:1.5px solid ${accent};opacity:0.22;"></div>
+            <div style="position:absolute;bottom:22px;right:22px;width:28px;height:28px;
+                border-bottom:1.5px solid ${accent};border-right:1.5px solid ${accent};opacity:0.22;"></div>
+            <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;">
+                <div style="position:absolute;inset:-14px;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0% 50%);background:${hexGlow};"></div>
+                <div style="position:absolute;inset:0;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0% 50%);background:${hexBg};"></div>
+                <svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;" viewBox="0 0 120 120">
+                    <polygon points="30,6 90,6 120,60 90,114 30,114 0,60" fill="none" stroke="${hexStr}" stroke-width="1.5"/>
+                    <polygon points="36,14 84,14 108,60 84,106 36,106 12,60" fill="none" stroke="${hexStr2}" stroke-width="0.75"/>
+                </svg>
+                <img src="lnflogo.png" alt="" style="width:66px;height:66px;object-fit:contain;border-radius:50%;position:relative;z-index:1;">
+            </div>
+            <div style="margin-top:18px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:${textClr};">${label}</div>
+            <div style="margin-top:4px;font-size:0.62rem;letter-spacing:0.18em;text-transform:uppercase;color:${subClr};">${sub}</div>
+        </div>`;
+
+    requestAnimationFrame(() => {
+        flash.classList.add('active');
+        setTimeout(() => {
+            flash.classList.remove('active');
+            setTimeout(() => { flash.innerHTML = ''; }, 220);
+        }, 650);
+    });
+}
+
 function setupThemeToggle() {
     applyTheme();
     document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
@@ -47,6 +138,7 @@ function setupThemeToggle() {
             const isLight = document.body.classList.toggle('light-mode');
             localStorage.setItem(STORAGE_THEME, isLight ? 'light' : 'dark');
             applyTheme();
+            showThemeFlash(isLight);
         };
     });
 }
