@@ -923,7 +923,7 @@ textarea { resize: vertical; min-height: 100px; }
     width: 88px;
     height: 88px;
     object-fit: contain;
-    border-radius: var(--radius-xl);
+    border-radius: 100%;
     box-shadow: 0 0 40px var(--accent-glow);
 }
 
