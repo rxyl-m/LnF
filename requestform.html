@@ -7,7 +7,6 @@
   if (!localUser) {
     window.location.replace('login.html');
   } else if (localUser.role === 'admin') {
-    // If an admin tries to load the member page, politely bounce them to their dashboard
     window.location.replace('adminpage.html');
   }
 </script>
@@ -15,11 +14,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Report an Item — Lost & Found</title>
     <link rel="stylesheet" href="style.css">
-
     <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body class="page page-request" data-page="request">
-<!-- ── Splash Screen (ported from UMak Hub) ── -->
+<!-- ── Splash Screen ── -->
 <div id="appSplash" class="app-splash">
     <div class="splash-logo-container">
         <img src="lnflogo.png" alt="iAcademy Lost &amp; Found Loading" class="splash-logo">
@@ -118,6 +116,41 @@
                 Contact info
                 <input type="text" id="contactInfo" required placeholder="Email or phone number">
             </label>
+
+            <!-- ── ID VERIFICATION SECTION ── -->
+            <div class="id-verify-section" style="margin-top:20px; padding:16px; background:var(--bg-raised); border:1.5px solid var(--accent-light,rgba(77,130,255,0.3)); border-radius:var(--radius-lg,12px);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                    <i class="ph ph-shield-check" style="font-size:1.3rem;color:var(--accent);"></i>
+                    <div>
+                        <strong style="font-size:0.95rem;">Identity Verification</strong>
+                        <p style="margin:2px 0 0;font-size:0.78rem;color:var(--text-secondary);">
+                            Upload a valid school or government-issued ID to verify your identity. This is kept private and only seen by admins.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Preview area -->
+                <div id="idPreviewWrap" class="hidden" style="margin-bottom:10px;text-align:center;">
+                    <img id="idPreviewImg" src="" alt="ID Preview"
+                         style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--border);object-fit:contain;">
+                    <button type="button" id="idRemoveBtn"
+                            style="display:block;margin:6px auto 0;font-size:0.75rem;color:var(--red,#e11d48);background:none;border:none;cursor:pointer;">
+                        <i class="ph ph-trash"></i> Remove
+                    </button>
+                </div>
+
+                <label style="margin-bottom:0;">
+                    <span id="idUploadLabel">Upload Valid ID <span style="color:var(--red,#e11d48);">*</span></span>
+                    <input type="file" id="verificationId"
+                           accept="image/png, image/jpeg, image/jpg, image/webp"
+                           required
+                           style="background:var(--bg-surface);">
+                </label>
+                <p style="font-size:0.73rem;color:var(--text-muted);margin-top:6px;">
+                    Accepted: School ID, Driver's License, Passport, PhilSys ID &nbsp;·&nbsp; Max 5 MB
+                </p>
+            </div>
+
             <div class="form-actions" style="margin-top:14px;">
                 <button type="submit" class="button primary" style="flex:1;">Submit Request</button>
                 <a class="button secondary" href="memberpage.html">Cancel</a>
@@ -129,5 +162,34 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script src="script.js"></script>
+<script>
+    /* ── ID Preview / Remove ── */
+    const idInput      = document.getElementById('verificationId');
+    const idPreviewImg = document.getElementById('idPreviewImg');
+    const idPreviewWrap = document.getElementById('idPreviewWrap');
+    const idRemoveBtn  = document.getElementById('idRemoveBtn');
+
+    idInput.addEventListener('change', () => {
+        const file = idInput.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('ID file must be under 5 MB.', 'error');
+            idInput.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => {
+            idPreviewImg.src = e.target.result;
+            idPreviewWrap.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    idRemoveBtn.addEventListener('click', () => {
+        idInput.value = '';
+        idPreviewImg.src = '';
+        idPreviewWrap.classList.add('hidden');
+    });
+</script>
 </body>
 </html>
