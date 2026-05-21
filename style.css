@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ══════════════════════════════════════════════════════════
    DESIGN TOKENS — iAcademy palette  (dark default)
@@ -968,7 +968,7 @@ textarea { resize: vertical; min-height: 100px; }
     position: relative; z-index: 1;
 }
 
-/* text + loader (sit below hex) */
+/* text + loader */
 .splash-text-block {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     z-index: 1; margin-top: 22px;
@@ -985,7 +985,6 @@ textarea { resize: vertical; min-height: 100px; }
     font-size: 0.65rem; letter-spacing: 0.18em;
     color: var(--text-muted); text-transform: uppercase;
 }
-
 .splash-loader {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
     z-index: 1; margin-top: 18px;
@@ -1010,7 +1009,7 @@ textarea { resize: vertical; min-height: 100px; }
 .splash-dot:nth-child(2) { animation-delay: 0.15s; }
 .splash-dot:nth-child(3) { animation-delay: 0.30s; }
 
-/* ── theme-switch flash overlay ── */
+/* theme-switch flash overlay */
 .theme-flash {
     position: fixed; inset: 0; z-index: 8888;
     pointer-events: none; opacity: 0;
@@ -1018,7 +1017,7 @@ textarea { resize: vertical; min-height: 100px; }
 }
 .theme-flash.active { opacity: 1; }
 
-/* ── keyframes ── */
+/* keyframes */
 @keyframes splashPop {
     from { opacity: 0; transform: scale(0.75); }
     to   { opacity: 1; transform: scale(1); }
@@ -1044,7 +1043,7 @@ textarea { resize: vertical; min-height: 100px; }
     to   { stroke-dashoffset: 0; }
 }
 
-/* light-mode splash tint adjustments */
+/* light-mode splash adjustments */
 body.light-mode .splash-grid {
     background-image:
         linear-gradient(rgba(43,92,230,0.06) 1px, transparent 1px),
